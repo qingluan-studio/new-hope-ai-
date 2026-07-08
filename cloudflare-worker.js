@@ -9,14 +9,25 @@
  */
 
 export default {
-  async fetch(request: Request): Promise<Response> {
+  async fetch(request: Request, env: { API_KEY?: string }): Promise<Response> {
+    // 处理 OPTIONS 预检请求
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, x-target-url, x-api-key',
+        },
+      })
+    }
+
     // 只允许 POST
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 })
     }
 
     // 从环境变量读取密钥 (Secret 类型，不会暴露)
-    const apiKey = (request as any).env?.API_KEY
+    const apiKey = env.API_KEY || request.headers.get('x-api-key')
     if (!apiKey) {
       return new Response('API Key not configured', { status: 500 })
     }
@@ -62,13 +73,4 @@ export default {
   },
 }
 
-// 处理 OPTIONS 预检请求
-export async function handleOptions(): Promise<Response> {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, x-target-url',
-    },
-  })
-}
+// 支持自定义 API Key (用于开发测试，生产环境建议用 Secret)
