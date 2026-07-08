@@ -12,6 +12,12 @@ import { useConsciousnessFlow } from './stores/consciousnessFlow'
 import { useAIFarm } from './stores/aiFarm'
 import { usePersonalityTree } from './stores/personalityTree'
 import { useMetaOrchestrator } from './stores/metaOrchestrator'
+import { useToolRegistry } from './stores/toolRegistry'
+import { useAIPlanner } from './stores/aiPlanner'
+import { useKnowledgePlugins, shouldTriggerKnowledge } from './stores/knowledgePlugins'
+import { useSelfEvolution } from './stores/selfEvolution'
+import { useSuperAgent } from './stores/superAgent'
+import { initDataIntegrity } from './utils/dataIntegrity'
 import { accelerator } from './utils/devAccelerator'
 import './hljs-theme.css'
 
@@ -24,6 +30,11 @@ const flow = useConsciousnessFlow()
 const farm = useAIFarm()
 const persona = usePersonalityTree()
 const meta = useMetaOrchestrator()
+const toolReg = useToolRegistry()
+const planner = useAIPlanner()
+const kPlugins = useKnowledgePlugins()
+const evolution = useSelfEvolution()
+const superAgent = useSuperAgent()
 
 const sessions = ref<Session[]>([])
 const currentSessionId = ref('')
@@ -44,6 +55,10 @@ const showGeneLab = ref(false)
 const showFarm = ref(false)
 const showOrch = ref(false)
 const showFlow = ref(false)
+const showTools = ref(false)
+const showPlanner = ref(false)
+const showEvo = ref(false)
+const showSuper = ref(false)
 const kbSearch = ref('')
 const streamContent = ref('')
 const abortController = ref<AbortController | null>(null)
@@ -182,6 +197,13 @@ async function sendMessage(regenerateLast = false) {
   let kbContext = ''
   if (kbResults.length > 0 && text.length > 3) kbContext = '\n\n[Retrieved Knowledge]\n' + kbResults.map((e,i) => `${i+1}. ${e.t}: ${e.c}`).join('\n')
 
+  let pluginContext = ''
+  if (shouldTriggerKnowledge(text)) {
+    kPlugins.smartSearch(text).then(results => {
+      if (results.length) kbContext += '\n\n[External Knowledge]\n' + results.map((r,i) => `${i+1}. [${r.source}] ${r.title}: ${r.snippet}`).join('\n')
+    })
+  }
+
   const regions = brain.detectRegionsFromInput(text)
   brain.activateRegions(regions, 0.15)
   persona.logInteraction(text, activeMode.value === 'deep' ? '学习模式' : activeMode.value === 'daily' ? '工作模式' : '休闲模式')
@@ -257,6 +279,7 @@ watch(() => currentMessages.value.length, () => nextTick(() => {
 }))
 
 onMounted(async () => {
+  initDataIntegrity()
   await loadSessions()
   if (sessions.value.length === 0) {
     const session = await createSession()
@@ -310,6 +333,23 @@ const flowMermaidSvg = computed(() => {
   if (!flowMermaidCode.value) return ''
   return `<pre><code class="language-mermaid">${flowMermaidCode.value}</code></pre>`
 })
+
+const selectedTemplate = ref('')
+function useTemplate() {
+  if (!selectedTemplate.value) return
+  planner.createFromTemplate(selectedTemplate.value, inputRef.value || '新项目')
+  selectedTemplate.value = ''
+}
+function doRollback(snapId: string) {
+  const data = evolution.rollback(snapId)
+  if (data) alert('已回滚到快照版本')
+}
+function createSnapshot() {
+  evolution.createSnapshot('手动快照 - ' + new Date().toLocaleString(), {
+    sessions: sessions.value, brain: brain.state, persona: persona.getProfile(),
+    tools: toolReg.getTools(), plans: planner.getPlans(),
+  })
+}
 </script>
 
 <template>
@@ -336,6 +376,10 @@ const flowMermaidSvg = computed(() => {
         <button class="icon-btn" @click="showFarm = !showFarm" title="AI农场">F</button>
         <button class="icon-btn" @click="showOrch = !showOrch" title="元系统">M</button>
         <button class="icon-btn" @click="triggerFlow();showFlow=!showFlow" title="意识流">%</button>
+        <button class="icon-btn" @click="showTools = !showTools" title="工具注册表">T</button>
+        <button class="icon-btn" @click="showPlanner = !showPlanner" title="AI规划器">P</button>
+        <button class="icon-btn" @click="showEvo = !showEvo" title="进化系统">E</button>
+        <button class="icon-btn" @click="showSuper = !showSuper" title="超级Agent">X</button>
         <span class="token-count" :title="totalTokens + ' tokens used'">{{ (totalTokens / 1000).toFixed(1) }}K</span>
       </div>
     </header>
@@ -565,6 +609,122 @@ const flowMermaidSvg = computed(() => {
           <pre v-else class="artifact-code">{{ selectedArtifact.content }}</pre>
         </div>
         <div v-else class="artifact-empty">Click "Preview" on code blocks to view here</div>
+      </div>
+
+      <!-- Tools Panel -->
+      <div v-if="showTools" class="sidebar">
+        <div class="sidebar-head"><span>Tool Registry</span><button class="icon-btn" @click="showTools=false">X</button></div>
+        <div class="tools-panel">
+          <div class="tools-stats">
+            <span class="ts-item">工具: {{ toolReg.getStats().total }}</span>
+            <span class="ts-item">使用: {{ toolReg.getStats().totalUsage }}次</span>
+            <span class="ts-item">成功率: {{ toolReg.getStats().avgRate }}</span>
+          </div>
+          <div class="tools-list">
+            <div v-for="t in toolReg.getTools()" :key="t.id" class="tool-item" @click="inputRef = t.desc; showTools = false">
+              <div class="tool-top">
+                <span class="tool-icon">{{ t.icon }}</span>
+                <span class="tool-name">{{ t.name }}</span>
+                <span class="tool-cat">{{ t.category }}</span>
+              </div>
+              <div class="tool-desc">{{ t.desc }}</div>
+              <div class="tool-params">
+                <span v-for="p in t.params" :key="p.name" class="tool-param" :class="{ required: p.required }">{{ p.name }}{{ p.required ? '*' : '' }}</span>
+              </div>
+              <div class="tool-meta">v{{ t.version }} | 使用{{ t.usageCount }}次 | {{ (t.successRate*100).toFixed(0) }}%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Planner Panel -->
+      <div v-if="showPlanner" class="sidebar">
+        <div class="sidebar-head"><span>AI Planner</span><button class="icon-btn" @click="showPlanner=false">X</button></div>
+        <div class="planner-panel">
+          <div class="planner-actions">
+            <select v-model="selectedTemplate" class="planner-select">
+              <option value="">选择模板...</option>
+              <option v-for="t in planner.getTemplates()" :key="t.id" :value="t.id">{{ t.name }} ({{ t.steps.length }}步)</option>
+            </select>
+            <button class="action-btn" @click="useTemplate()" :disabled="!selectedTemplate">使用模板</button>
+          </div>
+          <div class="planner-plans">
+            <div v-for="p in planner.getPlans()" :key="p.id" class="plan-item">
+              <div class="plan-top">
+                <span class="plan-title">{{ p.title }}</span>
+                <span class="plan-status" :class="p.status">{{ p.status }}</span>
+                <button class="plan-del" @click="planner.deletePlan(p.id)">X</button>
+              </div>
+              <div class="plan-progress">
+                <span class="plan-progress-bar"><span class="plan-progress-fill" :style="{ width: p.progress+'%' }"></span></span>
+                <span class="plan-progress-pct">{{ p.progress }}%</span>
+              </div>
+              <div class="plan-steps">
+                <div v-for="s in p.steps" :key="s.id" class="plan-step" :class="s.status">
+                  <span class="ps-status">{{ s.status === 'completed' ? 'v' : s.status === 'in_progress' ? '...' : s.status === 'failed' ? 'x' : '-' }}</span>
+                  <span class="ps-desc">{{ s.desc }}</span>
+                  <span class="ps-tool">{{ s.assignedTool }}</span>
+                </div>
+              </div>
+              <div class="plan-controls" v-if="p.status === 'draft'">
+                <button class="action-btn" @click="planner.activatePlan(p.id)">启动执行</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Evolution Panel -->
+      <div v-if="showEvo" class="sidebar">
+        <div class="sidebar-head"><span>Self Evolution</span><button class="icon-btn" @click="showEvo=false">X</button></div>
+        <div class="evo-panel">
+          <div class="evo-stats">
+            <div class="evo-stat"><span class="evo-val">{{ evolution.state.stabilityScore }}</span><span class="evo-label">稳定性</span></div>
+            <div class="evo-stat"><span class="evo-val">{{ evolution.state.totalEvolutions }}</span><span class="evo-label">进化次数</span></div>
+            <div class="evo-stat"><span class="evo-val">{{ evolution.state.safeMode ? 'ON' : 'OFF' }}</span><span class="evo-label">安全模式</span></div>
+          </div>
+          <div class="evo-snapshots">
+            <div class="orch-section-title">快照 ({{ evolution.state.snapshots.length }})</div>
+            <div v-for="s in evolution.getSnapshots().slice(0,10)" :key="s.id" class="evo-snap">
+              <span class="es-desc">{{ s.description.slice(0,25) }}</span>
+              <span class="es-time">{{ new Date(s.timestamp).toLocaleString() }}</span>
+              <button class="es-rollback" @click="doRollback(s.id)">回滚</button>
+            </div>
+          </div>
+          <div class="evo-weblearn">
+            <div class="orch-section-title">网页学习 ({{ evolution.state.webLearns.length }})</div>
+            <div v-for="(w,i) in evolution.getWebLearns().slice(0,5)" :key="i" class="evo-wl">
+              <span class="ew-title">{{ w.title.slice(0,20) }}</span>
+              <span class="ew-insight">{{ w.keyInsight.slice(0,30) }}</span>
+              <button v-if="!w.applied" class="ew-apply" @click="evolution.applyLearning(i)">Apply</button>
+            </div>
+          </div>
+          <button class="action-btn" @click="createSnapshot()">创建快照</button>
+        </div>
+      </div>
+
+      <!-- Super Agent Panel -->
+      <div v-if="showSuper" class="sidebar">
+        <div class="sidebar-head"><span>Super Agent</span><button class="icon-btn" @click="showSuper=false">X</button></div>
+        <div class="super-panel">
+          <div class="super-stats">
+            <span class="ss-item">{{ superAgent.getAgentCount() }} Agents</span>
+            <span class="ss-item">{{ superAgent.getLayerCount() }} Layers</span>
+          </div>
+          <div v-for="c in superAgent.getCapabilities()" :key="c.layer" class="super-layer">
+            <div class="sl-header" :style="{ borderLeftColor: c.color }">
+              <span class="sl-name">{{ c.layerName }}</span>
+              <span class="sl-count">{{ c.agents.length }} agents</span>
+            </div>
+            <div class="sl-agents">
+              <div v-for="a in c.agents" :key="a.id" class="sa-item" @click="inputRef = '调用' + a.role + ': '; showSuper = false">
+                <span class="sa-icon">{{ a.icon }}</span>
+                <span class="sa-name">{{ a.name }}</span>
+                <span class="sa-role">{{ a.role }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
