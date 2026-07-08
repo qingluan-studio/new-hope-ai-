@@ -349,6 +349,13 @@ watch(() => currentMessages.value.length, () => nextTick(() => {
 }))
 
 onMounted(async () => {
+  window.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+    if (e.key === 'n' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); showMemory.value = !showMemory.value }
+    if (e.key === 'a' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); showAutonomy.value = !showAutonomy.value }
+    if (e.key === '*' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); showGraph.value = !showGraph.value }
+    if (e.key === '8' && e.shiftKey && !e.ctrlKey && !e.metaKey) { e.preventDefault(); showGraph.value = !showGraph.value }
+  })
   initDataIntegrity()
   await loadSessions()
   if (sessions.value.length === 0) {
@@ -537,6 +544,11 @@ function buildGraph() {
   knowledgeGraph.start()
 }
 
+watch(showGraph, (v) => {
+  if (v) buildGraph()
+  else knowledgeGraph.stop()
+})
+
 function cancelAutonomy() {
   const r = autonomy.getActiveRun()
   if (r) autonomy.cancelRun(r.id)
@@ -669,7 +681,7 @@ function getFilteredCrystals() {
         <button class="icon-btn" @click="showCrystallization = !showCrystallization" title="晶化管理">%</button>
         <button class="icon-btn" @click="showMemory = !showMemory" title="记忆引擎">N</button>
         <button class="icon-btn" @click="showAutonomy = !showAutonomy" title="智能体自治">A</button>
-        <button class="icon-btn" @click="showGraph = !showGraph; if(showGraph) buildGraph()" title="知识图谱">*</button>
+        <button class="icon-btn" @click="showGraph = !showGraph" title="知识图谱">*</button>
         <span class="token-count" :title="totalTokens + ' tokens used'">{{ (totalTokens / 1000).toFixed(1) }}K</span>
       </div>
     </header>
@@ -1431,7 +1443,7 @@ function getFilteredCrystals() {
 
       <!-- Knowledge Graph Panel -->
       <div v-if="showGraph" class="sidebar" style="width:620px" ref="graphCanvas">
-        <div class="sidebar-head"><span>Neural Knowledge Graph</span><button class="icon-btn" @click="showGraph=false;knowledgeGraph.stop()">X</button></div>
+        <div class="sidebar-head"><span>Neural Knowledge Graph</span><button class="icon-btn" @click="showGraph=false">X</button></div>
         <div style="display:flex;gap:6px;padding:6px 10px">
           <button class="action-btn" @click="knowledgeGraph.start()">Play</button>
           <button class="action-btn" @click="knowledgeGraph.stop()">Pause</button>
