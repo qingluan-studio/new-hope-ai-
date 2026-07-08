@@ -457,6 +457,41 @@ input[type="range"] { accent-color: var(--accent); height: 4px; cursor: pointer;
 .cry-pack-name { font-size: 8px; font-weight: 700; color: var(--text-primary) }
 .cry-pack-meta { font-size: 6px; color: var(--text-tertiary); margin-top: 2px }
 
+/* ===== Memory Panel ===== */
+.memory-panel { padding: 10px; overflow-y: auto; flex: 1 }
+.mem-stats { display: flex; gap: 12px; margin-bottom: 10px }
+.mem-stat { text-align: center; flex: 1 }
+.mem-stat-val { display: block; font-size: 18px; font-weight: 800; color: var(--accent); font-family: var(--font-mono) }
+.mem-stat-label { display: block; font-size: 7px; color: var(--text-tertiary); margin-top: 2px }
+.mem-item { background: var(--bg-tertiary); border-radius: var(--radius-sm); padding: 8px; margin-bottom: 4px; border: 1px solid var(--border-color); border-left: 2px solid var(--accent); transition: var(--transition-fast) }
+.mem-item:hover { border-color: var(--accent) }
+.mem-item-src { font-size: 6px; color: var(--text-tertiary); margin-bottom: 3px }
+.mem-item-content { font-size: 8px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 4px }
+.mem-item-tags { font-size: 6px; color: var(--accent); margin-bottom: 4px }
+.mem-item-actions { display: flex; gap: 4px }
+.act-btn-sm { font-size: 6px; padding: 1px 6px; border-radius: 3px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-secondary); cursor: pointer; transition: var(--transition-fast) }
+.act-btn-sm:hover { border-color: var(--accent); color: var(--accent) }
+.act-btn-sm.del:hover { border-color: #ff6b6b; color: #ff6b6b }
+
+/* ===== Autonomy Panel ===== */
+.autonomy-panel { padding: 10px; overflow-y: auto; flex: 1 }
+.auto-task { background: var(--bg-tertiary); border-radius: var(--radius-sm); padding: 8px; margin-bottom: 4px; border-left: 3px solid var(--border-color); transition: var(--transition-fast) }
+.auto-task.running { border-left-color: var(--accent); background: rgba(0,255,157,0.03) }
+.auto-task.done { border-left-color: var(--accent); opacity: 0.8 }
+.auto-task.failed { border-left-color: #ff6b6b; background: rgba(255,107,107,0.05) }
+.auto-task-head { font-size: 9px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px }
+.auto-task-status { font-size: 10px }
+.auto-task-agent { font-size: 7px; color: var(--text-tertiary); margin-top: 2px }
+.auto-task-result { font-size: 7px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4; max-height: 80px; overflow: hidden }
+.auto-summary { background: var(--bg-tertiary); border-radius: 8px; padding: 12px; margin-top: 10px; font-size: 9px; color: var(--text-primary); line-height: 1.6; border: 1px solid var(--accent) }
+.auto-run-item { background: var(--bg-tertiary); border-radius: 4px; padding: 6px 8px; margin-bottom: 3px; cursor: pointer; transition: var(--transition-fast) }
+.auto-run-item:hover { background: var(--bg-primary) }
+.auto-run-goal { font-size: 8px; color: var(--text-secondary) }
+.auto-run-status { font-size: 6px; padding: 1px 5px; border-radius: 6px; margin-left: 6px }
+.auto-run-status.done { background: rgba(0,255,157,0.15); color: var(--accent) }
+.auto-run-status.failed { background: rgba(255,107,107,0.15); color: #ff6b6b }
+.auto-run-status.executing { background: rgba(78,205,196,0.15); color: #4ecdc4 }
+
 /* ===== Existing Panel Styles (enhanced) ===== */
 .brain-path { font-size: 8px; color: var(--text-secondary); background: var(--bg-tertiary); border-radius: 5px; padding: 7px; margin-bottom: 8px; line-height: 1.5; font-family: var(--font-mono); border-left: 2px solid var(--accent) }
 .brain-regions { display: flex; flex-direction: column; gap: 4px }
