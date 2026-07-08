@@ -3,6 +3,7 @@ import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import { kbEntries, type KBEntry } from './data/knowledgeBase'
+import { csEntries } from './data/allCSCourses'
 import { listSessions, getSession, saveSession, deleteSession, createSession, cleanupOldSessions, type Session, type SessionMessage } from './stores/sessionStore'
 import { renderMermaidDiagrams } from './utils/mermaid'
 import { useBrainEngine } from './stores/brainEngine'
@@ -159,10 +160,16 @@ async function removeSession(id: string) {
   }
 }
 
+const allKbEntries = [...kbEntries, ...csEntries]
+
 function searchKB(query: string): KBEntry[] {
-  if (!query.trim()) return kbEntries.slice(0, 5)
+  if (!query.trim()) {
+    const ai = kbEntries.filter(e => e.g.includes('AI')).slice(0, 3)
+    const cs = csEntries.filter(e => e.g.includes('算法')).slice(0, 2)
+    return [...ai, ...cs]
+  }
   const q = query.toLowerCase()
-  return kbEntries.filter(e => e.t.toLowerCase().includes(q) || e.c.toLowerCase().includes(q) || e.g.some(g => q.includes(g))).slice(0, 12)
+  return allKbEntries.filter(e => e.t.toLowerCase().includes(q) || e.c.toLowerCase().includes(q) || e.g.some(g => q.includes(g) || g.toLowerCase().includes(q))).slice(0, 12)
 }
 
 function extractCodeBlocks(content: string): { lang: string; code: string }[] {
@@ -305,7 +312,14 @@ function exportChat() {
   const blob = new Blob([md], { type: 'text/markdown' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `chat-${new Date().toISOString().slice(0,10)}.md`; a.click(); URL.revokeObjectURL(url)
 }
 
-const filteredKB = computed(() => searchKB(kbSearch.value))
+const kbCat = ref('')
+const kbCats = ['数据结构','算法','操作系统','网络','数据库','编译','计组','离散数学','软件工程','PL','AI','图形学','分布式','安全','密码学','Web']
+
+const filteredKB = computed(() => {
+  let results = searchKB(kbSearch.value)
+  if (kbCat.value) results = results.filter(e => e.g.some(g => g.includes(kbCat.value)))
+  return results
+})
 const formatTime = (ts: number) => { const d = new Date(ts); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0') }
 const messageContainer = ref<HTMLElement>()
 
@@ -323,7 +337,7 @@ onMounted(async () => {
     const session = await createSession()
     session.messages.push({
       role: 'assistant',
-      content: `我是 **New Hope AI** —— 已融合 momiqi 全部知识体系的超级智能体。\n\n**知识库**: ${kbEntries.length}条知识条目 | 覆盖AI进化(L1-L5/TAI/CAI/GAI)、10个原创理论、8大模型家族、6种训练技术、5种推理方法、完整RAG体系、AI安全治理、科学AI、具身智能、全球AI格局\n\n**多提供商**: DeepSeek · OpenAI(GPT-4o/o3) · Google(Gemini) · Anthropic(Claude) · Meta(Llama/Groq) · Moonshot(Kimi)\n\n## Quick Start\n1. 点 \`S\` 设置API Key → 切换模型提供商\n2. 输入任何问题——DAG编排/AI进化/代码生成/架构设计/安全审计\n3. 点聊天列表图标浏览${kbEntries.length}条知识库\n\n免费注册 [DeepSeek](https://platform.deepseek.com) 送500万token | [Groq](https://console.groq.com) 免费高速推理`,
+      content: `我是 **New Hope AI** —— 已融合 momiqi 全部知识体系的超级智能体。\n\n**知识库**: ${allKbEntries.length}条知识条目 | ${kbEntries.length}条AI前沿 + ${csEntries.length}条大学CS核心课程\n\n覆盖：数据结构与算法/操作系统/计算机网络/数据库/编译原理/计算机组成/离散数学/软件工程/PL理论/AI/图形学/分布式/安全/密码学/Web开发\n\n**多提供商**: DeepSeek · OpenAI(GPT-4o/o3) · Google(Gemini) · Anthropic(Claude) · Meta(Llama/Groq) · Moonshot(Kimi)\n\n## Quick Start\n1. 点 \`S\` 设置API Key → 切换模型提供商\n2. 输入任何问题——大学CS课程/代码生成/算法解题/架构设计/安全审计\n3. 点聊天列表图标浏览${allKbEntries.length}条知识库\n\n免费注册 [DeepSeek](https://platform.deepseek.com) 送500万token | [Groq](https://console.groq.com) 免费高速推理`,
       agent: 'New Hope AI',
       time: Date.now(),
     })
@@ -617,8 +631,11 @@ function getFilteredCrystals() {
 
       <!-- KB Sidebar -->
       <div v-if="showKB" class="sidebar">
-        <div class="sidebar-head"><span>Knowledge Base ({{ kbEntries.length }})</span><button class="icon-btn" @click="showKB=false">X</button></div>
-        <input v-model="kbSearch" class="sidebar-search" placeholder="Search knowledge..." />
+        <div class="sidebar-head"><span>Knowledge Base ({{ allKbEntries.length }})</span><button class="icon-btn" @click="showKB=false">X</button></div>
+        <input v-model="kbSearch" class="sidebar-search" placeholder="Search 288 knowledge entries..." />
+        <div class="kb-cats">
+          <span v-for="cat in kbCats" :key="cat" class="kb-cat" :class="{ active: kbCat === cat }" @click="kbCat = kbCat === cat ? '' : cat">{{ cat }}</span>
+        </div>
         <div class="kb-list">
           <div v-for="e in filteredKB" :key="e.t" class="kb-item" @click="inputRef = 'Explain: ' + e.t; showKB = false">
             <div class="kb-item-title">{{ e.t }}</div>
