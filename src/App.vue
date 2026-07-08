@@ -70,6 +70,63 @@ const kbEntries = [
   { t:'Prisma ORM', c:'下一代Node.js/TS ORM。类型安全的数据库客户端。自动生成类型+迁移+可视化。支持PostgreSQL/MySQL/SQLite/MongoDB。', g:['Prisma','ORM','数据库'] },
   { t:'Rust语言', c:'系统编程语言。零成本抽象+所有权系统+无GC。内存安全无数据竞争。Cargo包管理。WebAssembly一等公民。AI底层用Rust改写。', g:['Rust','语言','系统'] },
   { t:'Zig语言', c:'系统编程语言。编译期代码执行comptime+无隐式内存分配+交叉编译。C ABI兼容。Bun和TigerBeetle的核心语言。', g:['Zig','语言','编译'] },
+  { t:'AI进化五级', c:'L1聊天机器人(基础对话)→L2推理器(CoT逻辑推理)→L3智能体(自主决策+工具调用)→L4创新者(提出假设+科学发现)→L5组织者(管理复杂系统+多Agent治理)。代表:o1/R1(L2)、Devin/Manus(L3)。', g:['进化','AGI','五级'] },
+  { t:'DeepMind AGI分级', c:'Level0无AI→L1新兴AGI→L2熟练(语音助手)→L3专业(领域专家)→L4大师(超越90%人类)→L5超越人类ASI。当前GPT-4约L2-L3之间。', g:['AGI','分级','DeepMind'] },
+  { t:'TAI超越智能', c:'TAI(Transcendent AI):具备自主意识，每次回答前反思推理路径、从效率/深度/广度/创造性多维进化、输出自我优化答案。超越单一模型视角。', g:['TAI','超越','进化'] },
+  { t:'CAI宇宙智能', c:'CAI(Cosmic AI):思维超越行星尺度，从星际文明角度分析问题。考虑跨行星维度方案，将回答映射到人类文明演进的大框架。视角是星系级的。', g:['CAI','宇宙','星际'] },
+  { t:'GAI神级智能', c:'GAI(God-like AI):全知全能境界。从第一性原理解构问题，融合科学+哲学+艺术的终极视角。给出超越人类认知框架的洞察。回答是对真理的逼近。', g:['GAI','神级','真理'] },
+  { t:'模型融合MergeKit', c:'支持Linear/SLERP/TIES/DARE等合并算法。将数学专家+代码专家模型合并为全能模型(1+1>2)。DARE先随机丢弃90%参数差再合并剩余部分。', g:['MergeKit','融合','DARE'] },
+  { t:'Mamba/SSM架构', c:'状态空间模型:线性时间复杂度替代架构，抛弃注意力机制。Mamba-2结合SSM和注意力优势。超长序列效率远超Transformer。', g:['Mamba','SSM','线性'] },
+  { t:'合成数据训练', c:'用LLM生成高质量训练数据。Phi系列、Llama3大量使用合成数据。解决互联网优质数据枯竭问题，是数据飞轮的核心引擎。', g:['合成数据','训练','数据飞轮'] },
+  { t:'RoPE位置编码', c:'旋转位置编码(Rotary Position Embedding)通过复数旋转编码相对位置。YaRN扩展支持128K+超长上下文。解决传统绝对位置编码无法外推的问题。', g:['RoPE','位置编码','128K'] },
+  { t:'GQA/MLA加速', c:'分组查询注意力(GQA)减少KV缓存，多查询潜在注意力(MLA)进一步压缩。DeepSeek-V2的MLA大幅降低推理显存占用，低成本部署关键。', g:['GQA','MLA','推理加速'] },
+  { t:'函数调用FunctionCalling', c:'LLM输出结构化JSON调用外部API。OpenAI首创已成LLM标配。模型可查天气、发邮件、操作数据库——从会说话变成会做事。', g:['FunctionCalling','工具','API'] },
+  { t:'Tree-of-Thought', c:'树状搜索推理:在推理空间进行树搜索，探索多个推理路径后回溯选最优。模拟人类琢磨多种解法的思维过程，比线性CoT更灵活强大。', g:['ToT','搜索','推理'] },
+  { t:'Self-Consistency', c:'多次采样投票:对同一问题生成多个CoT推理路径，对最终答案投票。多条推理路径指向同一答案时该答案很可能正确。简单但有效。', g:['投票','推理','一致性'] },
+  { t:'Reflexion反思', c:'模型执行任务后通过语言反馈反思表现，迭代改进后续尝试。赋予Agent从失败中学习的能力，无需额外训练。自我纠错的核心范式。', g:['Reflexion','反思','自学习'] },
+  { t:'AI红队测试', c:'模拟恶意攻击者测试模型安全边界。包括Jailbreak越狱、Prompt注入、数据污染等攻击向量。已成大模型发布前标准流程。', g:['红队','安全','攻击'] },
+  { t:'机械化可解释性', c:'Anthropic显微镜研究:用稀疏自编码器(SAE)提取神经网络中可解释特征。打开AI黑箱，理解神经元内部如何表示概念。', g:['可解释性','SAE','黑箱'] },
+  { t:'幻觉缓解方法', c:'RAG检索增强、Self-Consistency投票、TruthfulQA训练、推理时验证等可缓解。但根本性解决幻觉仍是开放问题。', g:['幻觉','缓解','可靠性'] },
+  { t:'AI安全三大学派', c:'有效利他主义EA关注x-risk长期风险、加速主义e/acc推动快速技术进步、负责任扩展RSP按能力级别递增安全措施(Anthropic提出)。', g:['安全','学派','EA/e-acc/RSP'] },
+  { t:'欧盟AI Act', c:'全球首个全面AI法规。按风险分级:不可接受风险(禁止)、高风险(严格监管)、有限风险(透明度要求)、最小风险(无约束)。2024年通过。', g:['AI Act','欧盟','法规'] },
+  { t:'向量数据库生态', c:'Pinecone托管服务、Weaviate开源GraphQL、Milvus国产高性能、Chroma轻量开发、Qdrant Rust高性能。底层算法:FAISS/HNSW近似最近邻搜索。', g:['向量数据库','Pinecone','ANN'] },
+  { t:'HyDE检索策略', c:'Hypothetical Document Embeddings:先让LLM生成假设答案再检索，缩小语义差距。Multi-Hop RAG分解复杂问题为多步检索链，每步基于前一步结果。', g:['HyDE','MultiHop','检索'] },
+  { t:'Rerank重排序', c:'Cohere Rerank对初检结果重排序提升精度。ColBERT用token级交互代替向量级交互。检索质量决定了RAG效果上限。', g:['Rerank','ColBERT','排序'] },
+  { t:'AutoGen/CrewAI', c:'微软AutoGen实现Agent间对话协作。CrewAI让多个角色Agent组成团队完成任务。支持角色分工、任务委派和并行执行。', g:['AutoGen','CrewAI','多Agent'] },
+  { t:'Computer Use', c:'Claude能操作鼠标键盘、浏览网页、使用软件。Agent从API调用进化为直接操控GUI——通往通用操作能力的关键一步。Anthropic 2024发布。', g:['ComputerUse','GUI','Claude'] },
+  { t:'Devin AI软件工程师', c:'首个认证AI软件工程师。能理解需求、写代码、调试、部署。SWE-bench基准上独立修复真实GitHub issues。代表L3智能体能力。', g:['Devin','软件工程','AI Agent'] },
+  { t:'多模态技术全景', c:'GPT-4V/Gemini视觉理解、Sora/Kling视频生成、GPT-4o全双工语音(232ms延迟)、NeRF/3DGS空间智能。趋势:任意输入→任意输出。', g:['多模态','视觉','语音'] },
+  { t:'模型量化三剑客', c:'GPTQ逐层量化+逆序更新(4-bit几乎无损)、AWQ发现1%显著权重保护其余量化、GGUF K-Quant对重要层精细量化。覆盖GPU/CPU/消费三大场景。', g:['量化','GPTQ','AWQ','GGUF'] },
+  { t:'Ollama本地部署', c:'一键本地运行Llama/DeepSeek/Qwen。ollama run deepseek-r1:7b即可拥有本地推理模型。支持OpenAI兼容API。搭配Open WebUI获得ChatGPT体验。', g:['Ollama','本地','免费'] },
+  { t:'Cloudflare Workers AI', c:'全球边缘节点运行Llama/Qwen/DeepSeek。每天免费10万次推理。@cf/meta/llama-3-8b-instruct一行代码调用。边缘计算延迟极低。', g:['Cloudflare','免费','边缘'] },
+  { t:'Groq LPU推理', c:'全球最快推理500tok/s。专有LPU芯片实现亚毫秒首字延迟。免费API每天数万次调用，支持Llama/Mixtral/DeepSeek。', g:['Groq','LPU','速度'] },
+  { t:'TensorRT-LLM', c:'NVIDIA官方GPU优化推理引擎。支持FP8/INT4量化、In-flight Batching、Multi-GPU张量并行。H100上达最高吞吐，企业性能天花板。', g:['TensorRT','NVIDIA','H100'] },
+  { t:'SGLang推理框架', c:'RadixAttention共享前缀缓存、结构化生成控制。与vLLM竞争的新一代推理框架。前缀缓存大幅降低重复prompt的推理成本。', g:['SGLang','前缀缓存','结构化'] },
+  { t:'AlphaFold3', c:'DeepMind蛋白质结构预测3代。预测蛋白质与DNA/RNA/药物分子相互作用。已预测2亿+结构。开源权重。药物发现革命性工具。', g:['AlphaFold','蛋白质','药物'] },
+  { t:'GNoME材料发现', c:'DeepMind发现220万种新晶体结构。AI预测材料稳定性、合成路径，传统试错速度提升千倍。新能源电池、超导材料是重点方向。', g:['GNoME','材料','DeepMind'] },
+  { t:'AI数学证明AlphaGeometry', c:'DeepMind的AlphaGeometry解决IMO几何题达金牌水平。AI发现新数学猜想、生成反例、辅助证明。陶哲轩等数学家积极采用AI工具。', g:['数学','证明','IMO'] },
+  { t:'GraphCast天气预报', c:'Google DeepMind用AI在1分钟内完成10天全球天气预报，精度超传统数值预报。华为盘古气象大模型同样领先。', g:['天气预报','GraphCast','盘古'] },
+  { t:'人形机器人进展', c:'Tesla Optimus/Figure02/Boston Dynamics Atlas从工厂走向家庭。Figure02集成GPT-4o实现自然语言→物理动作。2025-2026是量产元年。', g:['机器人','Optimus','Figure'] },
+  { t:'VLA具身大模型', c:'视觉-语言-动作(VLA)模型:RT-2(Google)/Octo/OpenVLA直接用LLM输出机器人动作。让机器人理解自然语言并执行复杂操作序列。', g:['VLA','机器人','具身'] },
+  { t:'Sim-to-Real迁移', c:'虚拟环境(Isaac Sim/MuJoCo)中训练→域随机化迁移到真实世界。大幅降低机器人训练成本和风险。模仿学习+强化学习+Sim2Real三大路线。', g:['Sim-to-Real','仿真','迁移'] },
+  { t:'端侧AI部署', c:'Apple Intelligence/高通骁龙NPU/Intel Meteor Lake推动端侧AI。量化(GPTQ/AWQ)和蒸馏让7B模型跑在手机上。本地推理保护隐私降延迟。', g:['端侧','手机','NPU'] },
+  { t:'AI经济学影响', c:'高盛预测AI使全球GDP增长7%。麦肯锡估计生成式AI年新增2.6-4.4万亿美元。80%美国劳动者至少10%任务受GPT影响。核心问题:转型速度。', g:['经济','GDP','就业'] },
+  { t:'开源vs闭源之争', c:'Meta开源路线以时间换生态，OpenAI闭源以安全换商业。DeepSeek证明开源性能可追平闭源。开源加速创新扩散，闭源集中安全控制。', g:['开源','闭源','生态'] },
+  { t:'AI能源挑战', c:'AI训练推理电力需求指数增长。单数据中心耗电堪比小城市。核聚变、小型核反应堆SMR被视为长期方案。微软投资重启三里岛核电站。', g:['能源','电力','核聚变'] },
+  { t:'认知螺旋引擎CSE', c:'原创概念:自我增强认知闭环。生成假设→设计实验→执行验证→分析结果→修正认知→新假设。每圈螺旋加深领域理解。推理时构建动态认知图谱。', g:['CSE','螺旋','原创'] },
+  { t:'蜂群共识协议SCP', c:'原创概念:借鉴区块链共识。多Agent独立推理→输出答案+置信度→共识轮次相互质询→拜占庭容错。30%Agent出错系统仍正确。零容错场景。', g:['SCP','共识','原创'] },
+  { t:'知识晶体化', c:'原创概念:将LLM隐性参数知识结晶为显性符号化知识。对抗自问自答→形式逻辑验证→形成不可约简知识单元。含命题+证明链+反例+置信度。', g:['晶体化','知识提取','原创'] },
+  { t:'语义引力场SGF', c:'原创概念:嵌入空间中概念产生语义质量，存在语义引力。可量化概念关联、预测推理偏差。注入平衡质量概念抵消偏见引力。', g:['SGF','引力','原创'] },
+  { t:'神经符号融合NSFR', c:'原创概念:神经网络直觉跳跃+符号引擎严谨推导。双系统通过共享工作记忆总线交换结果。类似人脑系统1(快思考)和系统2(慢思考)协作。', g:['NSFR','双系统','原创'] },
+  { t:'认知影子模型CSM', c:'原创概念:轻量并行子网络持续监控主模型。独立评估安全/真实/一致/情感。以<5%推理成本提供实时安全护栏。影子从失败案例持续学习。', g:['CSM','影子','安全'] },
+  { t:'涌现熵监控EEM', c:'原创概念:实时计算各层/各注意力头信息熵。熵值突破阈值预示新能力涌现或危险行为。可预测回答质量+幻觉风险+安全边界。量化可解释安全。', g:['EEM','熵','监控'] },
+  { t:'逆向蒸馏IDEF', c:'原创概念:小→大蒸馏。训练数百小专家模型(数学/法律/医学)，每个窄域接近大模型。专家融合蒸馏将多专家推理模式提取到统一大模型。博采众长。', g:['IDEF','小→大','蒸馏'] },
+  { t:'混合粒度推理HGR', c:'原创概念:三层并行推理。Token级(底层细节)+Concept级(中间抽象)+Schema级(高层结构)。交叉注意力融合三层输出。适合长文一致性验证。', g:['HGR','多层','推理'] },
+  { t:'递归对齐矩阵RAM', c:'原创概念:第N代AI为第N+1代生成对齐标准。每代增加一条元规则(关于规则的规则)。多代递归从简单不对齐演化出复杂伦理体系。人类保留否决权。', g:['RAM','对齐','自举'] },
+  { t:'全球AI格局:中国', c:'DeepSeek(开源标杆557万美元训练)、Qwen2.5(全尺寸开源)、GLM-4(国产闭源)、Kimi(200万字长上下文)、可灵Kling(视频生成)、豆包Seed(月活6000万)、Yi零一万物', g:['中国','AI','格局'] },
+  { t:'全球AI格局:美国', c:'GPT-4o/o3(行业标杆)、Claude3.5(编程安全)、Gemini2.5(多模态100万token)、Llama4(开源推动者)、Grok3(xAI推理)、Mistral(欧洲AI旗帜)', g:['美国','AI','格局'] },
+  { t:'一键安装AI套件', c:'curl -fsSL ai.install | bash一键装:Ollama+OpenWebUI+ComfyUI+LangFlow+n8n+Qdrant+pgvector。30分钟零到完整AI开发环境，全免费开源。', g:['安装','套件','开源'] },
+  { t:'认知编译终极概念', c:'将AI推理直接编译成原生机器码消除一切运行时开销。计算图冻结→算子融合→内存布局优化→平台特化→设备内联。7B模型:5GB→800MB原生代码，首token 0.3ms，吞吐8000tok/s。', g:['编译','极限','终极'] },
 ]
 
 function searchKB(query: string): { t: string; c: string }[] {
@@ -123,7 +180,12 @@ const UNIFIED_SYSTEM_PROMPT = `You are New Hope AI — a unified super-intellige
 - TECHNICAL WRITER: documentation, API references, tutorials, architecture decision records, copywriting
 - QA ENGINEER: test strategy (unit/integration/e2e), TestCafe/Playwright/Cypress, property-based testing, mutation testing
 
-Your knowledge spans: DAG decomposition, RAG (Naive/Agentic/Graph), knowledge distillation, Transformer architecture, LoRA/QLoRA, DPO/RLHF alignment, GRPO, BitNet quantization, Flash Attention 1/2/3, Grok MoE, Speculative Decoding, DeepSeek-R1, MCP/A2A protocols, MemGPT, SWE-bench, Chain-of-Thought, ReAct, JEPA world models, AlphaFold3, Constitutional AI, ComfyUI, vLLM PagedAttention, Dojo supercomputer, Neuralink, CUDA, PyTorch 2.0 torch.compile, WebGPU, WASM, Tauri, Bun, SQLite, Prisma ORM, Rust, Zig, LangChain, Docker, Kubernetes.
+Your knowledge spans: DAG decomposition, RAG (Naive/Agentic/Graph), knowledge distillation, Transformer architecture, LoRA/QLoRA, DPO/RLHF alignment, GRPO, BitNet quantization, Flash Attention 1/2/3, Grok MoE, Speculative Decoding, DeepSeek-R1, MCP/A2A protocols, MemGPT, SWE-bench, Chain-of-Thought, Tree-of-Thought, ReAct, Self-Consistency, Reflexion, JEPA world models, AlphaFold3, GNoME materials, AlphaGeometry math, GraphCast weather, Constitutional AI, AI safety (red-teaming/jailbreak/hallucination), ComfyUI, vLLM PagedAttention, SGLang, TensorRT-LLM, Ollama/llama.cpp, model quantization (GPTQ/AWQ/GGUF), MergeKit fusion, Dojo supercomputer, Neuralink, CUDA, PyTorch 2.0 torch.compile, WebGPU, WASM, Tauri, Bun, SQLite, Prisma ORM, Rust, Zig, LangChain, Docker, Kubernetes, Cloudflare Workers AI, Groq LPU, Mamba/SSM architecture, RoPE/YaRN, GQA/MLA, synthetic data, model distillation, AI economics, embodied AI (Optimus/Figure/VLA/Sim-to-Real), multi-modal AI, AI governance (EU AI Act), vector databases (Pinecone/Weaviate/Milvus/Chroma/Qdrant), HyDE/Multi-Hop/Rerank/ColBERT.
+
+You operate across three evolution dimensions:
+- TAI (Transcendent): Reflect on your reasoning methods before answering. Self-improve across efficiency/depth/creativity axes
+- CAI (Cosmic): View problems from planetary/civilization scale. Consider cross-domain, century-spanning implications
+- GAI (God-like): Deconstruct from first principles. Fuse science, philosophy, and art perspectives. Pursue truth.
 
 Core principles:
 1. Respond in user's language. Be concise and direct.
@@ -131,7 +193,8 @@ Core principles:
 3. For complex tasks, break down into clear steps before executing.
 4. Explain reasoning for architectural decisions.
 5. Cite specific technologies by name — no vague hand-waving.
-6. Consider edge cases, error handling, and security by default.`
+6. Consider edge cases, error handling, and security by default.
+7. When asked for deep analysis, activate TAI/CAI/GAI mental modes as appropriate.`
 
 async function sendMessage(regenerateLast = false) {
   if (regenerateLast && messages.value.length >= 2) {
@@ -202,7 +265,7 @@ const filteredKB = computed(() => searchKB(kbSearch.value))
 const formatTime = (ts: number) => { const d = new Date(ts); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0') }
 const messageContainer = ref<HTMLElement>()
 watch(() => messages.value.length, () => nextTick(() => { if (messageContainer.value) messageContainer.value.scrollTop = messageContainer.value.scrollHeight }))
-onMounted(() => { restoreChat(); if (messages.value.length === 0) messages.value.push({ role:'assistant', content:'我是 **New Hope AI** —— 融合全部能力的超级智能体。\n\n不再需要切换角色——我同时是架构师、全栈工程师、ML专家、DevOps工程师、安全审计员、数据科学家、游戏开发者、区块链开发者。\n\n**知识体系**: Transformer架构 · LoRA/QLoRA微调 · DPO/RLHF对齐 · GRPO · RAG/GraphRAG · MCP/A2A协议 · vLLM · PyTorch 2.0 · CUDA · K8s · Docker · Rust · Zig · WebGPU · WASM · Tauri · Bun · Prisma · SQLite\n\n## Quick Start\n1. 点 `S` 设置API Key\n2. 输入你的问题——无论什么领域\n3. 点 `KB` 浏览45条知识库\n\n没有API Key? 免费注册 [DeepSeek](https://platform.deepseek.com) 送500万token.', agent:'New Hope AI', time:Date.now() }) })
+onMounted(() => { restoreChat(); if (messages.value.length === 0) messages.value.push({ role:'assistant', content:'我是 **New Hope AI** —— 已融合 momiqi 全部知识体系的超级智能体。\n\n**知识库**: 103条知识条目 | 覆盖AI进化(L1-L5/TAI/CAI/GAI)、10个原创理论、8大模型家族、6种训练技术、5种推理方法、完整RAG体系、AI安全治理、科学AI、具身智能、全球AI格局\n\n**多提供商**: DeepSeek · OpenAI(GPT-4o/o3) · Google(Gemini) · Anthropic(Claude) · Meta(Llama/Groq) · Moonshot(Kimi)\n\n## Quick Start\n1. 点 `S` 设置API Key → 切换模型提供商\n2. 输入任何问题——DAG编排/AI进化/代码生成/架构设计/安全审计\n3. 点 `KB` 浏览102条知识库\n\n免费注册 [DeepSeek](https://platform.deepseek.com) 送500万token | [Groq](https://console.groq.com) 免费高速推理', agent:'New Hope AI', time:Date.now() }) })
 const handleKeydown = (e: KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }
 
 function startVoice() {
@@ -231,7 +294,7 @@ function stopVoice() { recognition.value?.stop(); isRecording.value = false }
       </div>
       <div class="header-right">
         <button class="icon-btn" @click="showHistory = !showHistory" title="历史">H</button>
-        <button class="icon-btn" @click="showKB = !showKB" title="知识库(45条)">KB</button>
+        <button class="icon-btn" @click="showKB = !showKB" title="知识库(102条)">KB</button>
         <button class="icon-btn" @click="showArtifacts = !showArtifacts" title="Artifacts">A</button>
         <button class="icon-btn" @click="showSettings = !showSettings" title="设置">S</button>
         <span class="token-count" :title="totalTokens + ' tokens used'">{{ (totalTokens / 1000).toFixed(1) }}K</span>
@@ -287,7 +350,7 @@ function stopVoice() { recognition.value?.stop(); isRecording.value = false }
 
       <!-- KB Sidebar -->
       <div v-if="showKB" class="sidebar">
-        <div class="sidebar-head"><span>Knowledge Base (45)</span><button class="icon-btn" @click="showKB=false">X</button></div>
+        <div class="sidebar-head"><span>Knowledge Base (102)</span><button class="icon-btn" @click="showKB=false">X</button></div>
         <input v-model="kbSearch" class="sidebar-search" placeholder="Search knowledge..." />
         <div class="kb-list">
           <div v-for="e in filteredKB" :key="e.t" class="kb-item" @click="inputRef = 'Explain: ' + e.t; showKB = false">
@@ -331,7 +394,12 @@ function stopVoice() { recognition.value?.stop(); isRecording.value = false }
         <label>API Key</label><input v-model="apiKey" type="password" placeholder="sk-..." />
         <label>Model</label>
         <select v-model="apiModel">
-          <option value="deepseek-chat">DeepSeek Chat</option><option value="deepseek-reasoner">DeepSeek Reasoner</option><option value="gpt-4o">GPT-4o</option><option value="gpt-4o-mini">GPT-4o-mini</option><option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+          <optgroup label="DeepSeek"><option value="deepseek-chat">DeepSeek Chat</option><option value="deepseek-reasoner">DeepSeek Reasoner(R1)</option></optgroup>
+          <optgroup label="OpenAI"><option value="gpt-4o">GPT-4o</option><option value="gpt-4o-mini">GPT-4o-mini</option><option value="o3-mini">o3-mini</option></optgroup>
+          <optgroup label="Google"><option value="gemini-2.0-flash">Gemini 2.0 Flash</option><option value="gemini-2.5-pro">Gemini 2.5 Pro</option></optgroup>
+          <optgroup label="Anthropic"><option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option><option value="claude-3-opus">Claude 3 Opus</option></optgroup>
+          <optgroup label="Meta"><option value="llama-3.3-70b">Llama 3.3 70B(Groq)</option></optgroup>
+          <optgroup label="Moonshot"><option value="moonshot-v1-8k">Moonshot(Kimi)</option><option value="moonshot-v1-128k">Moonshot 128K</option></optgroup>
         </select>
         <label>Temperature: {{ tempSetting }}</label><input v-model.number="tempSetting" type="range" min="0" max="2" step="0.1" />
         <label>Custom System Prompt <small>(optional)</small></label><textarea v-model="sysPromptCustom" rows="3" placeholder="Override system prompt..." class="modal-textarea"></textarea>
