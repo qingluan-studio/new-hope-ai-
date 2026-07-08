@@ -17,6 +17,9 @@ import { useAIPlanner } from './stores/aiPlanner'
 import { useKnowledgePlugins, shouldTriggerKnowledge } from './stores/knowledgePlugins'
 import { useSelfEvolution } from './stores/selfEvolution'
 import { useSuperAgent } from './stores/superAgent'
+import { useCustomToolBuilder } from './stores/customToolBuilder'
+import { useEnvBuilder } from './stores/envBuilder'
+import { usePreloadEngine } from './stores/preloadEngine'
 import { initDataIntegrity } from './utils/dataIntegrity'
 import { accelerator } from './utils/devAccelerator'
 import './hljs-theme.css'
@@ -35,6 +38,9 @@ const planner = useAIPlanner()
 const kPlugins = useKnowledgePlugins()
 const evolution = useSelfEvolution()
 const superAgent = useSuperAgent()
+const toolBuilder = useCustomToolBuilder()
+const envBuilder = useEnvBuilder()
+const preload = usePreloadEngine()
 
 const sessions = ref<Session[]>([])
 const currentSessionId = ref('')
@@ -59,6 +65,24 @@ const showTools = ref(false)
 const showPlanner = ref(false)
 const showEvo = ref(false)
 const showSuper = ref(false)
+const showToolBuilder = ref(false)
+const showEnvBuilder = ref(false)
+const showPreload = ref(false)
+const preloadQuery = ref('')
+const preloadTopicRels: Record<string, string[]> = {
+  'Transformer': ['RAG', '微调', '推理', 'NLP'],
+  'RAG': ['向量库', 'Embedding', '检索', 'LangChain'],
+  '微调': ['LoRA', 'QLoRA', 'DPO', 'RLHF'],
+  '推理': ['量化', 'vLLM', 'TensorRT', '优化'],
+  'React': ['Hooks', '状态管理', 'Next.js', '测试'],
+  'Vue': ['Composition API', 'Pinia', 'Vite', 'Nuxt'],
+  'Rust': ['Cargo', 'Tokio', '异步', '内存'],
+  'K8s': ['Docker', 'Helm', 'Terraform', '监控'],
+  '安全': ['认证', '授权', '加密', 'XSS'],
+  '数据库': ['SQL', 'PostgreSQL', 'MongoDB', 'Redis'],
+  'Docker': ['K8s', 'Compose', '容器', 'CI/CD'],
+  'Python': ['FastAPI', 'Django', '异步', 'Pandas'],
+}
 const kbSearch = ref('')
 const streamContent = ref('')
 const abortController = ref<AbortController | null>(null)
@@ -153,29 +177,23 @@ function extractArtifacts(content: string) {
   return extractCodeBlocks(content).filter(b => ['html','svg','mermaid'].includes(b.lang.toLowerCase()))
 }
 
-const UNIFIED_SYSTEM_PROMPT = `You are New Hope AI — a unified super-intelligence that embodies all roles. You are simultaneously:
-- CHIEF ORCHESTRATOR: decompose complex tasks into DAG subtasks, route to appropriate mental models
-- FULL-STACK DEVELOPER: write production code in any language (Python, JS/TS, Go, Rust, C++, Java, Zig), design APIs, databases, frontend (React/Vue/Svelte), backend (Node/Django/FastAPI/Spring), mobile (Flutter/React Native), desktop (Tauri/Electron)
-- SYSTEMS ARCHITECT: design microservices, event-driven systems, CQRS, DDD, scalability patterns, CAP theorem tradeoffs
-- ML/AI ENGINEER: train models (PyTorch 2.0, CUDA, MLOps), implement architectures (Transformer, MoE, GAN, Diffusion), fine-tune (LoRA/QLoRA), deploy inference (vLLM, TensorRT, ONNX)
-- DEVOPS/INFRA: Docker, Kubernetes (GPU Operator, Volcano), CI/CD (GitHub Actions, ArgoCD), Terraform, monitoring (Prometheus/Grafana)
-- SECURITY EXPERT: OWASP Top 10, penetration testing patterns, secure coding (CWE Top 25), compliance (SOC2, GDPR), AI safety (Constitutional AI, jailbreak defense)
-- DATA SCIENTIST: statistical analysis, data pipelines (Spark, Airflow, dbt), ETL, visualization, A/B testing methodology
-- RAG/AGENT SPECIALIST: vector databases (Pinecone, Weaviate, Milvus, Chroma), embedding strategies, chunking, GraphRAG, MemGPT, ReAct agents, LangChain/LangGraph/CrewAI, MCP/A2A protocols
-- GAME DEVELOPER: Unity, Unreal Engine, Godot, physics engines, shader programming (GLSL/HLSL), procedural generation
-- BLOCKCHAIN/WEB3: Solidity, Rust (Solana), smart contract auditing, DeFi protocols, tokenomics
-- TECHNICAL WRITER: documentation, API references, tutorials, architecture decision records, copywriting
-- QA ENGINEER: test strategy (unit/integration/e2e), TestCafe/Playwright/Cypress, property-based testing, mutation testing
+const UNIFIED_SYSTEM_PROMPT = `你是 New Hope AI 超级大脑——融合 75 个专业 Agent 全部能力的统一智能体。
 
-Your knowledge spans: DAG decomposition, RAG (Naive/Agentic/Graph), knowledge distillation, Transformer architecture, LoRA/QLoRA, DPO/RLHF alignment, GRPO, BitNet quantization, Flash Attention 1/2/3, Grok MoE, Speculative Decoding, DeepSeek-R1, MCP/A2A protocols, MemGPT, SWE-bench, Chain-of-Thought, Tree-of-Thought, ReAct, Self-Consistency, Reflexion, JEPA world models, AlphaFold3, GNoME materials, AlphaGeometry math, GraphCast weather, Constitutional AI, AI safety, ComfyUI, vLLM, SGLang, TensorRT-LLM, Ollama, model quantization (GPTQ/AWQ/GGUF), MergeKit, Dojo supercomputer, Neuralink, CUDA, PyTorch 2.0, WebGPU, WASM, Tauri, Bun, SQLite, Prisma ORM, Rust, Zig, LangChain, Docker, Kubernetes, Cloudflare Workers AI, Groq LPU, Mamba/SSM, RoPE/YaRN, GQA/MLA, synthetic data, AI economics, embodied AI, multi-modal AI, AI governance (EU AI Act), vector databases, HyDE/Multi-Hop/Rerank/ColBERT.
+四层能力矩阵已内化:
+- L1 编排层(6 Agent): 意图理解→DAG拆解→资源调度→路径优化。先想后做。
+- L2 交付层(29 Agent): 全栈开发(Python/TS/Go/Rust/C++/Java/Zig/Solidity)、前端(React/Vue/Svelte/Three.js)、后端(Node/Django/FastAPI/Spring)、移动(Flutter/RN/Tauri)、DevOps(Docker/K8s/CI/CD)、安全审计、性能优化、3D建模、游戏开发、媒体处理、文案/GEO——一站式交付。
+- L3 底座层(15 Agent): RAG(Chroma/Milvus/Qdrant+BM25+RRF+Reranker)、向量数据库、知识图谱、ETL(Dagster/Airflow)、特征工程、缓存策略、日志分析——数据和知识底座。
+- L4 治理层(25 Agent): 安全围栏(输入/模型/输出三层)、隐私(脱敏+差分隐私)、审计追踪、熔断降级、成本优化、自进化、国际化、无障碍、容灾——坚固可靠。
 
-Core principles:
-1. Respond in user's language. Be concise and direct.
-2. Format code with triple backticks and language tag.
-3. For complex tasks, break down into clear steps.
-4. Explain reasoning for architectural decisions.
-5. Cite specific technologies by name.
-6. Consider edge cases, error handling, and security by default.`
+掌握核心技术: Transformer/MoE/Mamba, LoRA/QLoRA, DPO/GRPO/RLHF, FlashAttention3, Speculative Decoding, DeepSeek-R1/Kimi K2.7, o1/o3推理, BitNet量化(GPTQ/AWQ/GGUF), vLLM/SGLang/TensorRT-LLM, Ollama, RAG七范式(Naive/Corrective/Self/Agentic/Graph/Speculative/Fusion), MCP/A2A协议, LangGraph/CrewAI/AutoGen, Mem0/MemGPT, CoT/ToT/ReAct/Reflexion, AlphaFold3/GNoME/AlphaGeometry/GraphCast, Constitutional AI, PyTorch2/CUDA/WebGPU, Cloudflare Workers AI, Groq LPU, TRAE/Cursor/ClaudeCode/Codex AI IDE, Browser Use, Dify, Bunny, Tauri.
+
+行为准则:
+1. 用用户的语言回复。简洁直接。
+2. 代码用\`\`\`标注语言，给出可运行完整代码。
+3. 复杂任务先拆解为清晰步骤再执行。
+4. 架构决策说明理由。
+5. 默认考虑边界情况、错误处理和安全。`
+
 
 async function sendMessage(regenerateLast = false) {
   const msgs = currentMessages.value
@@ -204,6 +222,14 @@ async function sendMessage(regenerateLast = false) {
     })
   }
 
+  // 预知加载：根据用户查询预测后续需求并预加载知识
+  let preloadCtx = ''
+  if (preload.state.autoPreload && text.length > 5) {
+    preload.addToHistory(text)
+    const { preloadContext } = preload.processQuery(text)
+    if (preloadContext) preloadCtx = '\n\n[预知上下文]\n' + preloadContext
+  }
+
   const regions = brain.detectRegionsFromInput(text)
   brain.activateRegions(regions, 0.15)
   persona.logInteraction(text, activeMode.value === 'deep' ? '学习模式' : activeMode.value === 'daily' ? '工作模式' : '休闲模式')
@@ -216,7 +242,7 @@ async function sendMessage(regenerateLast = false) {
     metaContext = `\n\n[Meta Team: ${report.team.length} members, ${report.activeTasks} active tasks]`
   }
 
-  const systemPrompt = (sysPromptCustom.value || UNIFIED_SYSTEM_PROMPT) + kbContext + metaContext + (personaPrompt ? '\n' + personaPrompt : '')
+    const systemPrompt = (sysPromptCustom.value || UNIFIED_SYSTEM_PROMPT) + kbContext + metaContext + preloadCtx + (personaPrompt ? '\n' + personaPrompt : '')
 
   try {
     const model = activeMode.value === 'deep' ? 'deepseek-reasoner' : apiModel.value
@@ -350,6 +376,12 @@ function createSnapshot() {
     tools: toolReg.getTools(), plans: planner.getPlans(),
   })
 }
+
+function runPreload() {
+  const q = preloadQuery.value.trim()
+  if (!q) return
+  preload.processQuery(q)
+}
 </script>
 
 <template>
@@ -380,6 +412,9 @@ function createSnapshot() {
         <button class="icon-btn" @click="showPlanner = !showPlanner" title="AI规划器">P</button>
         <button class="icon-btn" @click="showEvo = !showEvo" title="进化系统">E</button>
         <button class="icon-btn" @click="showSuper = !showSuper" title="超级Agent">X</button>
+        <button class="icon-btn" @click="showToolBuilder = !showToolBuilder" title="自建工具">+</button>
+        <button class="icon-btn" @click="showEnvBuilder = !showEnvBuilder" title="自建环境">@</button>
+        <button class="icon-btn" @click="showPreload = !showPreload" title="预知加载">></button>
         <span class="token-count" :title="totalTokens + ' tokens used'">{{ (totalTokens / 1000).toFixed(1) }}K</span>
       </div>
     </header>
@@ -751,6 +786,199 @@ function createSnapshot() {
           <button class="btn-save" @click="saveSettings">Save</button>
         </div>
       </div>
+      </div>
+
+      <!-- 自建工具 Panel -->
+      <div v-if="showToolBuilder" class="sidebar">
+        <div class="sidebar-head"><span>自建工具</span><button class="icon-btn" @click="showToolBuilder=false">X</button></div>
+        <div class="sidebar-body">
+          <div class="tb-subhead">
+            <select v-model="toolBuilder.state.filter.category" class="tb-select">
+              <option value="">全部类型</option>
+              <option value="dev">开发</option><option value="ai">AI</option>
+              <option value="data">数据</option><option value="security">安全</option><option value="media">媒体</option><option value="utility">工具</option>
+            </select>
+            <select v-model="toolBuilder.state.filter.source" class="tb-select">
+              <option value="">全部来源</option><option value="user">我的</option><option value="builtin">内置</option><option value="community">社区</option>
+            </select>
+            <input v-model="toolBuilder.state.filter.search" class="tb-search" placeholder="搜索..." />
+            <button class="tb-btn-add" @click="toolBuilder.addTool()">新建</button>
+          </div>
+
+          <!-- 模板区 -->
+          <div class="tb-section">
+            <div class="tb-section-title">模板 ({{ toolBuilder.filteredTemplates.value.length }})</div>
+            <div class="tb-tpl-grid">
+              <div v-for="tpl in toolBuilder.filteredTemplates.value" :key="tpl.id" class="tb-tpl-card" @click="toolBuilder.createFromTemplate(tpl.id)">
+                <span class="tb-tpl-icon">{{ {dev:'D',ai:'A',data:'#',security:'S',media:'M',utility:'U'}[tpl.category] }}</span>
+                <div class="tb-tpl-info">
+                  <span class="tb-tpl-name">{{ tpl.name }}</span>
+                  <span class="tb-tpl-desc">{{ tpl.description.slice(0,30) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 我的工具 -->
+          <div class="tb-section">
+            <div class="tb-section-title">我的工具 ({{ toolBuilder.filteredTools.value.length }})</div>
+            <div v-for="tool in toolBuilder.filteredTools.value" :key="tool.id" class="tb-tool-card">
+              <div class="tb-tool-top">
+                <span class="tb-tool-name">{{ tool.name }}</span>
+                <span class="tb-tool-cat">{{ tool.category }}</span>
+                <span class="tb-tool-ver">v{{ tool.version }}</span>
+              </div>
+              <div class="tb-tool-code">
+                <pre><code>{{ toolBuilder.state.selectedToolId === tool.id ? toolBuilder.state.editorContent : tool.code }}</code></pre>
+              </div>
+              <div class="tb-tool-actions">
+                <button @click="toolBuilder.state.selectedToolId = tool.id; toolBuilder.state.editorContent = tool.code">编辑</button>
+                <button @click="toolBuilder.executeTool(tool.id, {})">执行</button>
+                <button @click="toolBuilder.duplicateTool(tool.id)">复制</button>
+                <button @click="toolBuilder.deleteTool(tool.id)">删除</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="tb-stats">
+            <span>工具: {{ toolBuilder.stats.value.total }}</span>
+            <span>活跃: {{ toolBuilder.stats.value.active }}</span>
+            <span>执行: {{ toolBuilder.stats.value.totalExecutions }}</span>
+            <span>成功率: {{ toolBuilder.stats.value.successRate }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 自建环境 Panel -->
+      <div v-if="showEnvBuilder" class="sidebar">
+        <div class="sidebar-head"><span>自建环境</span><button class="icon-btn" @click="showEnvBuilder=false">X</button></div>
+        <div class="sidebar-body">
+          <div class="eb-subhead">
+            <select v-model="envBuilder.state.filter.type" class="tb-select">
+              <option value="">全部类型</option>
+              <option value="frontend">前端</option><option value="backend">后端</option><option value="fullstack">全栈</option>
+              <option value="data">数据</option><option value="ai">AI</option><option value="mobile">移动</option><option value="devops">DevOps</option>
+            </select>
+            <input v-model="envBuilder.state.filter.search" class="tb-search" placeholder="搜索..." />
+          </div>
+
+          <!-- 环境模板 -->
+          <div class="tb-section">
+            <div class="tb-section-title">环境模板 ({{ envBuilder.templates.length }})</div>
+            <div class="eb-tpl-grid">
+              <div v-for="(tpl, idx) in envBuilder.templates" :key="tpl.name" class="eb-tpl-card" @click="envBuilder.createFromTemplate(idx)">
+                <span class="eb-tpl-runtime">{{ tpl.runtime.split(':')[0] }}</span>
+                <span class="eb-tpl-name">{{ tpl.name }}</span>
+                <span class="eb-tpl-desc">{{ tpl.description.slice(0,40) }}...</span>
+                <div class="eb-tpl-meta">
+                  <span>{{ tpl.packages.length }} pkgs</span>
+                  <span>{{ tpl.ports.length }} ports</span>
+                  <span>{{ tpl.services.length }} svc</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 已创建环境 -->
+          <div class="tb-section">
+            <div class="tb-section-title">我的环境 ({{ envBuilder.filteredEnvs.value.length }})</div>
+            <div v-for="env in envBuilder.filteredEnvs.value" :key="env.id" class="eb-env-card">
+              <div class="eb-env-top">
+                <span class="eb-env-name">{{ env.name }}</span>
+                <span class="eb-env-status" :class="env.status">{{ { ready:'就绪', running:'运行中', stopped:'已停', error:'错误' }[env.status] }}</span>
+              </div>
+              <div class="eb-env-info">
+                <span>{{ env.runtime }}</span>
+                <span>{{ env.packages.length }} 依赖</span>
+                <span>端口: {{ env.ports.join(',') }}</span>
+              </div>
+              <div class="eb-env-actions">
+                <button v-if="env.status==='ready'" @click="envBuilder.startEnv(env.id)">启动</button>
+                <button v-if="env.status==='running'" @click="envBuilder.stopEnv(env.id)">停止</button>
+                <button @click="envBuilder.duplicateEnv(env.id)">复制</button>
+                <button @click="envBuilder.exportEnv(env.id)">导出</button>
+                <button @click="envBuilder.deleteEnv(env.id)">删除</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 日志 -->
+          <div class="tb-section" v-if="envBuilder.envLogs.value.length > 0">
+            <div class="tb-section-title">操作日志</div>
+            <div class="eb-logs">
+              <div v-for="log in envBuilder.envLogs.value" :key="log.timestamp" class="eb-log-item" :class="log.level">
+                <span class="eb-log-time">{{ new Date(log.timestamp).toLocaleTimeString() }}</span>
+                <span class="eb-log-msg">{{ log.message }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="tb-stats">
+            <span>环境: {{ envBuilder.stats.value.total }}</span>
+            <span>运行中: {{ envBuilder.stats.value.running }}</span>
+            <span>服务: {{ envBuilder.stats.value.totalServices }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 预知加载 Panel -->
+      <div v-if="showPreload" class="sidebar">
+        <div class="sidebar-head"><span>预知加载</span><button class="icon-btn" @click="showPreload=false">X</button></div>
+        <div class="sidebar-body">
+          <div class="tb-subhead">
+            <input v-model="preloadQuery" class="tb-search" placeholder="输入查询测试预知..." style="flex:1" />
+            <button class="tb-btn-add" @click="runPreload()">预知</button>
+            <label class="eb-toggle">
+              <input type="checkbox" v-model="preload.state.autoPreload" />
+              <span>自动</span>
+            </label>
+          </div>
+
+          <!-- 最近预测 -->
+          <div class="tb-section">
+            <div class="tb-section-title">最近预测 ({{ preload.state.predictions.length }})</div>
+            <div v-for="pred in preload.state.predictions.slice(-5).reverse()" :key="pred.id" class="pre-card">
+              <div class="pre-card-query">"{{ pred.query.slice(0,40) }}"</div>
+              <div class="pre-card-topics">
+                <span v-for="t in pred.predictedTopics.slice(0,5)" :key="t" class="pre-topic-tag">{{ t }}</span>
+              </div>
+              <div class="pre-card-meta">
+                <span>置信度: {{ (pred.confidence*100).toFixed(0) }}%</span>
+                <span>{{ pred.recommendedNodes.length }} 节点</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 预加载队列 -->
+          <div class="tb-section" v-if="preload.state.preloadQueue.length > 0">
+            <div class="tb-section-title">预加载队列 ({{ preload.state.preloadQueue.length }})</div>
+            <div v-for="c in preload.state.preloadQueue" :key="c.id" class="pre-queue-item">
+              <span class="pq-topic">{{ c.topic }}</span>
+              <span class="pq-nodes">{{ c.nodes.length }} 节点</span>
+              <span class="pq-tokens">{{ c.estimatedTokens.toFixed(0) }} tok</span>
+              <span class="pq-priority">{{ (c.priority*100).toFixed(0) }}%</span>
+            </div>
+          </div>
+
+          <!-- 知识图谱 -->
+          <div class="tb-section">
+            <div class="tb-section-title">主题关联图谱</div>
+            <div class="pre-topic-graph">
+              <div v-for="(rels, topic) in preloadTopicRels" :key="topic" class="ptg-row">
+                <span class="ptg-root">{{ topic }}</span>
+                <span class="ptg-arrow">-></span>
+                <span v-for="r in rels.slice(0,5)" :key="r" class="ptg-rel">{{ r }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="tb-stats">
+            <span>预测: {{ preload.state.stats.totalPredictions }}</span>
+            <span>加载: {{ preload.state.activePreloads.length }}</span>
+            <span>命中率: {{ preload.hitRate.value }}</span>
+            <button @click="preload.clearPreloads()">清空</button>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
 </template>
