@@ -1,1 +1,1 @@
-{"root":["./src/main.ts","./src/data/knowledgeBase.ts","./src/stores/sessionStore.ts","./src/utils/mermaid.ts","./src/App.vue","./env.d.ts"],"version":"5.7.3"}
+{"root":["./src/main.ts","./src/data/knowledgeBase.ts","./src/stores/agentGeneLab.ts","./src/stores/aiFarm.ts","./src/stores/brainEngine.ts","./src/stores/codeSelfWriter.ts","./src/stores/consciousnessFlow.ts","./src/stores/metaOrchestrator.ts","./src/stores/personalityTree.ts","./src/stores/sessionStore.ts","./src/utils/devAccelerator.ts","./src/utils/mermaid.ts","./src/App.vue","./env.d.ts"],"version":"5.7.3"}

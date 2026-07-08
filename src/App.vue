@@ -5,9 +5,25 @@ import hljs from 'highlight.js'
 import { kbEntries, type KBEntry } from './data/knowledgeBase'
 import { listSessions, getSession, saveSession, deleteSession, createSession, cleanupOldSessions, type Session, type SessionMessage } from './stores/sessionStore'
 import { renderMermaidDiagrams } from './utils/mermaid'
+import { useBrainEngine } from './stores/brainEngine'
+import { useAgentGeneLab } from './stores/agentGeneLab'
+import { useCodeSelfWriter } from './stores/codeSelfWriter'
+import { useConsciousnessFlow } from './stores/consciousnessFlow'
+import { useAIFarm } from './stores/aiFarm'
+import { usePersonalityTree } from './stores/personalityTree'
+import { useMetaOrchestrator } from './stores/metaOrchestrator'
+import { accelerator } from './utils/devAccelerator'
 import './hljs-theme.css'
 
 marked.setOptions({ breaks: true, gfm: true })
+
+const brain = useBrainEngine()
+const geneLab = useAgentGeneLab()
+const codeWriter = useCodeSelfWriter()
+const flow = useConsciousnessFlow()
+const farm = useAIFarm()
+const persona = usePersonalityTree()
+const meta = useMetaOrchestrator()
 
 const sessions = ref<Session[]>([])
 const currentSessionId = ref('')
@@ -23,6 +39,11 @@ const showSettings = ref(false)
 const showKB = ref(false)
 const showArtifacts = ref(false)
 const showSessions = ref(false)
+const showBrain = ref(false)
+const showGeneLab = ref(false)
+const showFarm = ref(false)
+const showOrch = ref(false)
+const showFlow = ref(false)
 const kbSearch = ref('')
 const streamContent = ref('')
 const abortController = ref<AbortController | null>(null)
@@ -32,6 +53,7 @@ const selectedArtifact = ref<{ title: string; type: string; content: string } | 
 const isRecording = ref(false)
 const recognition = ref<any>(null)
 const showReasoning = ref<Record<number, boolean>>({})
+const flowMermaidCode = ref('')
 
 const currentMessages = computed(() => {
   const s = sessions.value.find(s => s.id === currentSessionId.value)
@@ -160,7 +182,19 @@ async function sendMessage(regenerateLast = false) {
   let kbContext = ''
   if (kbResults.length > 0 && text.length > 3) kbContext = '\n\n[Retrieved Knowledge]\n' + kbResults.map((e,i) => `${i+1}. ${e.t}: ${e.c}`).join('\n')
 
-  const systemPrompt = (sysPromptCustom.value || UNIFIED_SYSTEM_PROMPT) + kbContext
+  const regions = brain.detectRegionsFromInput(text)
+  brain.activateRegions(regions, 0.15)
+  persona.logInteraction(text, activeMode.value === 'deep' ? '学习模式' : activeMode.value === 'daily' ? '工作模式' : '休闲模式')
+
+  const personaPrompt = persona.getMimicPrompt()
+  let metaContext = ''
+  if (text.length > 20 && (text.includes('怎么做') || text.includes('步骤') || text.includes('方案') || text.includes('计划'))) {
+    meta.decompose(text)
+    const report = meta.getReport()
+    metaContext = `\n\n[Meta Team: ${report.team.length} members, ${report.activeTasks} active tasks]`
+  }
+
+  const systemPrompt = (sysPromptCustom.value || UNIFIED_SYSTEM_PROMPT) + kbContext + metaContext + (personaPrompt ? '\n' + personaPrompt : '')
 
   try {
     const model = activeMode.value === 'deep' ? 'deepseek-reasoner' : apiModel.value
@@ -261,6 +295,21 @@ function saveSettings() {
   localStorage.setItem('nh_sysprompt', sysPromptCustom.value)
   showSettings.value = false
 }
+
+async function triggerFlow() {
+  const text = inputRef.value.trim()
+  if (!text) return
+  const kbHits = searchKB(text).slice(0, 8).map(e => e.t)
+  const result = flow.think(text, kbHits)
+  flowMermaidCode.value = result.mermaidCode
+  await nextTick()
+  if (messageContainer.value) renderMermaidDiagrams(messageContainer.value)
+}
+
+const flowMermaidSvg = computed(() => {
+  if (!flowMermaidCode.value) return ''
+  return `<pre><code class="language-mermaid">${flowMermaidCode.value}</code></pre>`
+})
 </script>
 
 <template>
@@ -282,6 +331,11 @@ function saveSettings() {
         <button class="icon-btn" @click="showKB = !showKB" title="知识库">KB</button>
         <button class="icon-btn" @click="showArtifacts = !showArtifacts" title="Artifacts">A</button>
         <button class="icon-btn" @click="showSettings = !showSettings" title="设置">S</button>
+        <button class="icon-btn" @click="showBrain = !showBrain" title="AI大脑">B</button>
+        <button class="icon-btn" @click="showGeneLab = !showGeneLab" title="基因实验室">G</button>
+        <button class="icon-btn" @click="showFarm = !showFarm" title="AI农场">F</button>
+        <button class="icon-btn" @click="showOrch = !showOrch" title="元系统">M</button>
+        <button class="icon-btn" @click="triggerFlow();showFlow=!showFlow" title="意识流">%</button>
         <span class="token-count" :title="totalTokens + ' tokens used'">{{ (totalTokens / 1000).toFixed(1) }}K</span>
       </div>
     </header>
@@ -368,6 +422,136 @@ function saveSettings() {
             <div class="kb-item-title">{{ e.t }}</div>
             <div class="kb-item-desc">{{ e.c.slice(0, 100) }}...</div>
             <div class="kb-item-tags">{{ e.g.join(' · ') }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Brain Panel -->
+      <div v-if="showBrain" class="sidebar">
+        <div class="sidebar-head"><span>AI Brain</span><button class="icon-btn" @click="showBrain=false">X</button></div>
+        <div class="brain-panel">
+          <div class="brain-stats">
+            <div class="brain-stat"><span class="brain-stat-val">Lv{{ brain.state.evolutionLevel }}</span><span class="brain-stat-label">进化等级</span></div>
+            <div class="brain-stat"><span class="brain-stat-val">{{ brain.state.synapses.length }}</span><span class="brain-stat-label">神经连接</span></div>
+            <div class="brain-stat"><span class="brain-stat-val">{{ brain.state.totalActivations }}</span><span class="brain-stat-label">激活次数</span></div>
+          </div>
+          <div class="brain-path">{{ brain.getTopPath() }}</div>
+          <div class="brain-regions">
+            <div v-for="r in brain.state.regions" :key="r.id" class="brain-region" :style="{ '--act': r.activation.toFixed(2) }">
+              <span class="br-name">{{ r.name }}</span>
+              <span class="br-bar"><span class="br-fill"></span></span>
+              <span class="br-pct">{{ (r.activation*100).toFixed(0) }}%</span>
+            </div>
+          </div>
+          <button class="action-btn" @click="brain.sleep()">触发睡眠模式</button>
+          <div class="dream-box" v-if="brain.state.dreamFragments.length">
+            <div class="dream-title">梦境碎片</div>
+            <div v-for="(d,i) in [...brain.state.dreamFragments].reverse().slice(0,5)" :key="i" class="dream-line">~ {{ d }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gene Lab Panel -->
+      <div v-if="showGeneLab" class="sidebar">
+        <div class="sidebar-head"><span>Agent Gene Lab</span><button class="icon-btn" @click="showGeneLab=false">X</button></div>
+        <div class="gene-panel">
+          <div class="gene-recommend" v-if="geneLab.getRecommendBreed()">
+            <div class="gene-rec-title">推荐杂交</div>
+            <div class="gene-rec-pair">{{ geneLab.getRecommendBreed()!.parentA.name }} x {{ geneLab.getRecommendBreed()!.parentB.name }}</div>
+            <div class="gene-rec-reason">{{ geneLab.getRecommendBreed()!.reason }}</div>
+            <button class="action-btn" @click="geneLab.breed(geneLab.getRecommendBreed()!.parentA,geneLab.getRecommendBreed()!.parentB)">执行杂交</button>
+          </div>
+          <div class="gene-list">
+            <div v-for="g in geneLab.getAll()" :key="g.id" class="gene-item">
+              <div class="gene-name">{{ g.name }} <span class="gene-gen">G{{ g.generation }}</span></div>
+              <div class="gene-bars">
+                <div v-for="(t,ti) in geneLab.TRAITS" :key="t.key" class="gene-trait">
+                  <span class="gt-label">{{ t.label }}</span>
+                  <span class="gt-bar"><span class="gt-fill" :style="{ width: (g.traitVector[ti]*10)+'%' }"></span></span>
+                </div>
+              </div>
+              <div class="gene-meta">
+                <span>适应度: {{ g.fitness }}/10</span>
+                <span>使用: {{ g.usageCount }}次</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Farm Panel -->
+      <div v-if="showFarm" class="sidebar">
+        <div class="sidebar-head"><span>AI Farm</span><button class="icon-btn" @click="showFarm=false">X</button></div>
+        <div class="farm-panel">
+          <div class="farm-stats">
+            <div class="farm-stat"><span class="farm-stat-val">{{ farm.getTotalSavings().toLocaleString() }}</span><span class="farm-stat-label">累计节省 tokens</span></div>
+          </div>
+          <div class="farm-providers">
+            <div v-for="p in farm.getProviders()" :key="p.id" class="farm-provider" :class="{ inactive: !p.active }">
+              <div class="fp-top">
+                <span class="fp-name">{{ p.name }}</span>
+                <span class="fp-badge" v-if="p.free">Free</span>
+                <button class="fp-toggle" @click="farm.toggleProvider(p.id)">{{ p.active ? 'ON' : 'OFF' }}</button>
+              </div>
+              <div class="fp-quota">
+                <span class="fp-quota-bar"><span class="fp-quota-fill" :style="{ width: (p.quotaUsed/p.quotaLimit*100).toFixed(0)+'%' }"></span></span>
+                <span class="fp-quota-pct">{{ (p.quotaUsed/p.quotaLimit*100).toFixed(1) }}%</span>
+              </div>
+              <div class="fp-models">{{ p.models.join(' | ') }}</div>
+            </div>
+          </div>
+          <button class="action-btn" @click="farm.load()">刷新配额</button>
+        </div>
+      </div>
+
+      <!-- Orchestrator Panel -->
+      <div v-if="showOrch" class="sidebar">
+        <div class="sidebar-head"><span>Meta Orchestrator</span><button class="icon-btn" @click="showOrch=false">X</button></div>
+        <div class="orch-panel">
+          <div class="orch-report">
+            <div class="orch-stat">已完成项目: {{ meta.state.completedProjects }}</div>
+          </div>
+          <div class="orch-team">
+            <div class="orch-section-title">AI 团队</div>
+            <div v-for="m in meta.state.team" :key="m.id" class="orch-member">
+              <div class="om-top">
+                <span class="om-name">{{ m.name }}</span>
+                <span class="om-role">{{ m.role }}</span>
+                <span class="om-busy" v-if="m.busy">忙碌</span>
+                <span class="om-idle" v-else>空闲</span>
+              </div>
+              <div class="om-cap">{{ m.capability.join(' · ') }}</div>
+              <div class="om-meta">任务: {{ m.taskCount }} | 成功率: {{ (m.successRate*100).toFixed(0) }}%</div>
+            </div>
+          </div>
+          <div class="orch-tasks" v-if="meta.state.tasks.length">
+            <div class="orch-section-title">活跃任务</div>
+            <div v-for="t in meta.state.tasks.filter(t=>t.status!=='done'&&t.status!=='failed').slice(-10)" :key="t.id" class="orch-task">
+              <span class="ot-status" :class="t.status">{{ t.status }}</span>
+              <span class="ot-title">{{ t.title }}</span>
+              <span class="ot-layer">{{ t.layer }}</span>
+              <button v-if="t.status==='pending'" class="ot-assign" @click="meta.assignTask(t.id)">分配</button>
+              <button v-if="t.status==='assigned'" class="ot-done" @click="meta.completeTask(t.id,'done')">完成</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Consciousness Flow Panel -->
+      <div v-if="showFlow" class="sidebar">
+        <div class="sidebar-head"><span>Consciousness Flow</span><button class="icon-btn" @click="showFlow=false">X</button></div>
+        <div class="flow-panel">
+          <div class="flow-trigger">
+            <input v-model="inputRef" class="flow-input" placeholder="输入关键词触发思维流..." @keydown.enter="triggerFlow();showFlow=false" />
+            <button class="action-btn" @click="triggerFlow();showFlow=false">思考</button>
+          </div>
+          <div v-if="flowMermaidCode" class="flow-diagram" ref="flowContainer" v-html="flowMermaidSvg"></div>
+          <div class="flow-history">
+            <div class="orch-section-title">思维历史</div>
+            <div v-for="(h,i) in [...flow.getHistory()].reverse().slice(0,10)" :key="i" class="flow-history-item">
+              <span class="fhi-trigger">{{ h.trigger.slice(0,20) }}</span>
+              <span class="fhi-nodes">{{ h.nodes.length }} 节点</span>
+            </div>
           </div>
         </div>
       </div>

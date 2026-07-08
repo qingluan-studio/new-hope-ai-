@@ -250,3 +250,93 @@ input[type="range"] { accent-color: var(--accent); height: 4px; cursor: pointer;
   .header-left { gap: 4px; }
   .brand { font-size: 12px; }
 }
+
+/* Brain Panel */
+.brain-panel { padding: 8px; overflow-y: auto; flex: 1; }
+.brain-stats { display: flex; gap: 6px; margin-bottom: 8px; }
+.brain-stat { flex: 1; text-align: center; background: var(--bg-tertiary); border-radius: 6px; padding: 6px 2px; }
+.brain-stat-val { display: block; font-size: 16px; font-weight: 800; color: var(--accent); }
+.brain-stat-label { display: block; font-size: 6px; color: var(--text-tertiary); margin-top: 1px; }
+.brain-path { font-size: 7px; color: var(--text-secondary); background: var(--bg-tertiary); border-radius: 4px; padding: 6px; margin-bottom: 8px; line-height: 1.5; }
+.brain-regions { display: flex; flex-direction: column; gap: 3px; }
+.brain-region { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
+.br-name { font-size: 7px; width: 36px; text-align: right; color: var(--text-secondary); font-weight: 700; }
+.br-bar { flex: 1; height: 4px; background: var(--bg-tertiary); border-radius: 2px; overflow: hidden; }
+.br-fill { display: block; height: 100%; background: var(--accent); width: calc(var(--act) * 100%); border-radius: 2px; transition: width 0.3s; }
+.br-pct { font-size: 6px; color: var(--text-tertiary); width: 22px; }
+.dream-box { margin-top: 10px; padding: 8px; background: var(--bg-tertiary); border-radius: 6px; }
+.dream-title { font-size: 7px; color: var(--accent); font-weight: 700; margin-bottom: 4px; }
+.dream-line { font-size: 6px; color: var(--text-secondary); font-style: italic; line-height: 1.6; }
+
+/* Gene Lab Panel */
+.gene-panel { padding: 8px; overflow-y: auto; flex: 1; }
+.gene-recommend { background: var(--bg-tertiary); border-radius: 6px; padding: 8px; margin-bottom: 10px; }
+.gene-rec-title { font-size: 7px; color: var(--accent); font-weight: 700; margin-bottom: 4px; }
+.gene-rec-pair { font-size: 12px; font-weight: 800; color: var(--text-primary); }
+.gene-rec-reason { font-size: 7px; color: var(--text-secondary); margin: 4px 0 6px; }
+.gene-list { display: flex; flex-direction: column; gap: 8px; }
+.gene-item { background: var(--bg-tertiary); border-radius: 6px; padding: 8px; }
+.gene-name { font-size: 9px; font-weight: 700; color: var(--text-primary); }
+.gene-gen { font-size: 7px; color: var(--text-tertiary); margin-left: 4px; }
+.gene-bars { display: flex; flex-direction: column; gap: 2px; margin: 4px 0; }
+.gene-trait { display: flex; align-items: center; gap: 4px; }
+.gt-label { font-size: 6px; color: var(--text-tertiary); width: 36px; text-align: right; }
+.gt-bar { flex: 1; height: 3px; background: var(--bg-primary); border-radius: 2px; overflow: hidden; }
+.gt-fill { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+.gene-meta { display: flex; gap: 12px; font-size: 7px; color: var(--text-tertiary); margin-top: 4px; }
+
+/* AI Farm Panel */
+.farm-panel { padding: 8px; overflow-y: auto; flex: 1; }
+.farm-stats { margin-bottom: 10px; }
+.farm-stat { text-align: center; background: var(--bg-tertiary); border-radius: 6px; padding: 8px; }
+.farm-stat-val { display: block; font-size: 18px; font-weight: 800; color: var(--accent); }
+.farm-stat-label { display: block; font-size: 6px; color: var(--text-tertiary); margin-top: 2px; }
+.farm-providers { display: flex; flex-direction: column; gap: 6px; }
+.farm-provider { background: var(--bg-tertiary); border-radius: 6px; padding: 8px; border: 1px solid transparent; }
+.farm-provider.inactive { opacity: 0.4; }
+.fp-top { display: flex; align-items: center; gap: 6px; }
+.fp-name { font-size: 9px; font-weight: 700; color: var(--text-primary); flex: 1; }
+.fp-badge { font-size: 6px; padding: 1px 4px; border-radius: 3px; background: rgba(34,197,94,0.15); color: #22c55e; font-weight: 700; }
+.fp-toggle { font-size: 6px; padding: 2px 5px; border-radius: 3px; border: 1px solid var(--border-color); background: transparent; color: var(--text-tertiary); cursor: pointer; }
+.fp-quota { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+.fp-quota-bar { flex: 1; height: 3px; background: var(--bg-primary); border-radius: 2px; overflow: hidden; }
+.fp-quota-fill { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+.fp-quota-pct { font-size: 6px; color: var(--text-tertiary); width: 30px; text-align: right; }
+.fp-models { font-size: 6px; color: var(--text-tertiary); }
+
+/* Meta Orchestrator Panel */
+.orch-panel { padding: 8px; overflow-y: auto; flex: 1; }
+.orch-stat { font-size: 8px; color: var(--accent); font-weight: 700; margin-bottom: 8px; }
+.orch-section-title { font-size: 7px; color: var(--text-secondary); font-weight: 700; margin: 8px 0 4px; border-bottom: 1px solid var(--border-color); padding-bottom: 3px; }
+.orch-team { display: flex; flex-direction: column; gap: 4px; }
+.orch-member { background: var(--bg-tertiary); border-radius: 5px; padding: 6px; }
+.om-top { display: flex; align-items: center; gap: 6px; }
+.om-name { font-size: 8px; font-weight: 700; color: var(--text-primary); }
+.om-role { font-size: 6px; color: var(--text-tertiary); }
+.om-busy { font-size: 6px; color: #f59e0b; }
+.om-idle { font-size: 6px; color: #22c55e; }
+.om-cap { font-size: 6px; color: var(--text-tertiary); margin-top: 2px; }
+.om-meta { font-size: 6px; color: var(--text-tertiary); }
+.orch-tasks { display: flex; flex-direction: column; gap: 3px; }
+.orch-task { display: flex; align-items: center; gap: 4px; background: var(--bg-tertiary); border-radius: 4px; padding: 4px 6px; }
+.ot-status { font-size: 6px; padding: 1px 4px; border-radius: 2px; }
+.ot-status.pending { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.ot-status.assigned { background: rgba(59,130,246,0.15); color: #3b82f6; }
+.ot-status.running { background: rgba(139,92,246,0.15); color: #8b5cf6; }
+.ot-title { font-size: 7px; color: var(--text-primary); flex: 1; }
+.ot-layer { font-size: 6px; color: var(--text-tertiary); }
+.ot-assign, .ot-done { font-size: 6px; padding: 1px 4px; border-radius: 2px; border: 1px solid var(--border-color); background: transparent; color: var(--accent); cursor: pointer; }
+.ot-assign:hover, .ot-done:hover { background: var(--accent-dim); }
+
+/* Consciousness Flow Panel */
+.flow-panel { padding: 8px; overflow-y: auto; flex: 1; }
+.flow-trigger { display: flex; gap: 4px; margin-bottom: 8px; }
+.flow-input { flex: 1; padding: 5px 6px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-primary); font-size: 8px; outline: none; font-family: inherit; }
+.flow-diagram { padding: 8px; background: var(--bg-tertiary); border-radius: 6px; overflow-x: auto; min-height: 60px; }
+.flow-history-item { display: flex; gap: 8px; padding: 3px 0; font-size: 7px; }
+.fhi-trigger { color: var(--text-primary); flex: 1; }
+.fhi-nodes { color: var(--text-tertiary); }
+
+/* Action Button */
+.action-btn { display: block; width: 100%; margin-top: 8px; padding: 6px; border-radius: 5px; border: 1px solid var(--accent); background: rgba(245,158,11,0.08); color: var(--accent); font-size: 8px; font-weight: 700; cursor: pointer; }
+.action-btn:hover { background: rgba(245,158,11,0.15); }
