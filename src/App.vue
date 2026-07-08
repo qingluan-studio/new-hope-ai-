@@ -23,6 +23,9 @@ import { useEnvBuilder } from './stores/envBuilder'
 import { usePreloadEngine } from './stores/preloadEngine'
 import { useTimeDilation } from './stores/timeDilation'
 import { useCrystallization } from './stores/crystallization'
+import { useMemoryEngine } from './stores/memoryEngine'
+import { useAgentAutonomy } from './stores/agentAutonomy'
+import { useKnowledgeGraph } from './stores/knowledgeGraph'
 import { initDataIntegrity } from './utils/dataIntegrity'
 import { accelerator } from './utils/devAccelerator'
 import './hljs-theme.css'
@@ -46,6 +49,9 @@ const envBuilder = useEnvBuilder()
 const preload = usePreloadEngine()
 const timeDilation = useTimeDilation()
 const crystallizer = useCrystallization()
+const memory = useMemoryEngine()
+const autonomy = useAgentAutonomy()
+const knowledgeGraph = useKnowledgeGraph()
 
 const sessions = ref<Session[]>([])
 const currentSessionId = ref('')
@@ -77,11 +83,18 @@ const preloadQuery = ref('')
 const showTimeDilation = ref(false)
 const showEvolutionV2 = ref(false)
 const showCrystallization = ref(false)
+const showMemory = ref(false)
+const showAutonomy = ref(false)
+const showGraph = ref(false)
 const timeScale = ref(10000000000)
 const activeTDSessionId = ref('')
 const cryFilterTier = ref('')
 const cryFilterType = ref('')
 const cryImportJson = ref('')
+const autonomyGoal = ref('')
+const autonomyRunning = ref(false)
+const autonomyResult = ref('')
+const graphCanvas = ref<HTMLElement>()
 const preloadTopicRels: Record<string, string[]> = {
   'Transformer': ['RAG', '微调', '推理', 'NLP'],
   'RAG': ['向量库', 'Embedding', '检索', 'LangChain'],
@@ -234,6 +247,9 @@ async function sendMessage(regenerateLast = false) {
   let kbContext = ''
   if (kbResults.length > 0 && text.length > 3) kbContext = '\n\n[Retrieved Knowledge]\n' + kbResults.map((e,i) => `${i+1}. ${e.t}: ${e.c}`).join('\n')
 
+  const memContext = memory.recallContext(text, 600)
+  const memCtxStr = memContext ? '\n\n[Long-term Memory]\n' + memContext : ''
+
   let pluginContext = ''
   if (shouldTriggerKnowledge(text)) {
     kPlugins.smartSearch(text).then(results => {
@@ -261,7 +277,7 @@ async function sendMessage(regenerateLast = false) {
     metaContext = `\n\n[Meta Team: ${report.team.length} members, ${report.activeTasks} active tasks]`
   }
 
-    const systemPrompt = (sysPromptCustom.value || UNIFIED_SYSTEM_PROMPT) + kbContext + metaContext + preloadCtx + (personaPrompt ? '\n' + personaPrompt : '')
+    const systemPrompt = (sysPromptCustom.value || UNIFIED_SYSTEM_PROMPT) + kbContext + memCtxStr + metaContext + preloadCtx + (personaPrompt ? '\n' + personaPrompt : '')
 
   try {
     const model = activeMode.value === 'deep' ? 'deepseek-reasoner' : apiModel.value
@@ -288,6 +304,8 @@ async function sendMessage(regenerateLast = false) {
     msgs.push(msg)
     currentTokenCost.value = Math.ceil((fullContent.length + (reasoningContent?.length || 0)) / 3.5)
     totalTokens.value += currentTokenCost.value; localStorage.setItem('nh_tokens', String(totalTokens.value))
+    memory.store(`Q: ${text.slice(0, 200)}\nA: ${fullContent.slice(0, 300)}`, 'chat', 0.6)
+    memory.consolidate()
     await saveCurrentSession()
     await nextTick()
     renderMermaidDiagrams(messageContainer.value!)
@@ -511,6 +529,103 @@ function exportTDAndCopy() {
   }
 }
 
+function buildGraph() {
+  const kbTitles = [...kbEntries, ...csEntries].slice(0, 30).map(e => e.t)
+  const memTags = memory.getState().entries.slice(0, 25).flatMap(e => e.g)
+  const agentNames = superAgent.getAll().slice(0, 20).map(a => a.name)
+  knowledgeGraph.buildFromData(kbTitles, memTags, agentNames, 560, 420)
+  knowledgeGraph.start()
+}
+
+function cancelAutonomy() {
+  const r = autonomy.getActiveRun()
+  if (r) autonomy.cancelRun(r.id)
+  autonomyRunning.value = false
+}
+
+async function runAutonomy() {
+  const goal = autonomyGoal.value.trim()
+  if (!goal || autonomyRunning.value || !apiKey.value) return
+  autonomyRunning.value = true
+  autonomyResult.value = ''
+  const agents = superAgent.matchAgent(goal)
+
+  try {
+    const planResp = await fetch(`${apiBase.value}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey.value}` },
+      body: JSON.stringify({
+        model: apiModel.value,
+        messages: [
+          { role: 'system', content: autonomy.getPlanPrompt() },
+          { role: 'user', content: `Goal: ${goal}\nAvailable Agents: ${agents.map(a => `${a.name} (${a.role}): ${a.expertise.slice(0,3).join(',')}`).join(' | ')}` }
+        ],
+        max_tokens: 1000, temperature: 0.3,
+      }),
+    })
+    if (!planResp.ok) throw new Error('Plan API failed')
+    const planData = await planResp.json()
+    const planJson = planData.choices?.[0]?.message?.content || '[]'
+    const jsonMatch = planJson.match(/\[[\s\S]*\]/)
+    const cleanJson = jsonMatch ? jsonMatch[0] : '[]'
+
+    const run = autonomy.createRun(goal, agents, cleanJson)
+    autonomy.startExecution(run.id)
+
+    while (true) {
+      const task = autonomy.getNextTask(run.id)
+      if (!task) break
+      autonomy.markRunning(run.id, task.id)
+
+      try {
+        const ctx = autonomy.buildAgentContext(run.id, task.id)
+        const tResp = await fetch(`${apiBase.value}/chat/completions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey.value}` },
+          body: JSON.stringify({
+            model: apiModel.value,
+            messages: [
+              { role: 'system', content: task.agent?.prompt || 'You are an expert agent.' },
+              { role: 'user', content: ctx }
+            ],
+            max_tokens: 1500, temperature: 0.7,
+          }),
+        })
+        if (!tResp.ok) throw new Error('Task API failed')
+        const tData = await tResp.json()
+        autonomy.markDone(run.id, task.id, tData.choices?.[0]?.message?.content || '')
+      } catch (e: any) {
+        autonomy.markFailed(run.id, task.id, e.message || 'Failed')
+      }
+    }
+
+    const allResults = autonomy.getAllResults(run.id)
+    const sumResp = await fetch(`${apiBase.value}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey.value}` },
+      body: JSON.stringify({
+        model: apiModel.value,
+        messages: [
+          { role: 'system', content: autonomy.getSummarizePrompt() },
+          { role: 'user', content: `Goal: ${goal}\n\nResults:\n${allResults}` }
+        ],
+        max_tokens: 2000, temperature: 0.5,
+      }),
+    })
+    if (sumResp.ok) {
+      const sumData = await sumResp.json()
+      const summary = sumData.choices?.[0]?.message?.content || ''
+      autonomy.setSummary(run.id, summary)
+      autonomyResult.value = summary
+    }
+  } catch (e: any) {
+    autonomyResult.value = 'Autonomy failed: ' + (e.message || 'unknown')
+    const run = autonomy.getLastRun()
+    if (run) autonomy.cancelRun(run.id)
+  }
+  autonomyRunning.value = false
+}
+
 function getFilteredCrystals() {
   const tier = cryFilterTier.value as any || undefined
   const type = cryFilterType.value as any || undefined
@@ -552,6 +667,9 @@ function getFilteredCrystals() {
         <button class="icon-btn" @click="showTimeDilation = !showTimeDilation" title="时间膨胀">W</button>
         <button class="icon-btn" @click="showEvolutionV2 = !showEvolutionV2" title="进化引擎V2">@</button>
         <button class="icon-btn" @click="showCrystallization = !showCrystallization" title="晶化管理">%</button>
+        <button class="icon-btn" @click="showMemory = !showMemory" title="记忆引擎">N</button>
+        <button class="icon-btn" @click="showAutonomy = !showAutonomy" title="智能体自治">A</button>
+        <button class="icon-btn" @click="showGraph = !showGraph; if(showGraph) buildGraph()" title="知识图谱">*</button>
         <span class="token-count" :title="totalTokens + ' tokens used'">{{ (totalTokens / 1000).toFixed(1) }}K</span>
       </div>
     </header>
@@ -1260,6 +1378,76 @@ function getFilteredCrystals() {
           <textarea v-model="cryImportJson" style="width:100%;height:60px;border:1px solid var(--border-color);border-radius:4px;background:var(--bg-tertiary);color:var(--text-primary);font-size:7px;padding:4px;resize:vertical;font-family:var(--font-mono)" placeholder="粘贴 JSON..."></textarea>
           <button class="action-btn" @click="importCrystals()">导入</button>
         </div>
+      </div>
+
+      <!-- Memory Panel -->
+      <div v-if="showMemory" class="sidebar">
+        <div class="sidebar-head"><span>Memory Engine ({{ memory.getStats().total }})</span><button class="icon-btn" @click="showMemory=false">X</button></div>
+        <div class="memory-panel">
+          <div class="mem-stats">
+            <div class="mem-stat"><span class="mem-stat-val">{{ memory.getStats().total }}</span><span class="mem-stat-label">总记忆</span></div>
+            <div class="mem-stat"><span class="mem-stat-val">{{ memory.getStats().recalled }}</span><span class="mem-stat-label">召回次数</span></div>
+            <div class="mem-stat"><span class="mem-stat-val">{{ memory.getStats().byType.reflection }}</span><span class="mem-stat-label">已合并</span></div>
+          </div>
+          <button class="action-btn" @click="memory.consolidate()">记忆合并压缩</button>
+          <button class="action-btn" style="margin-left:4px;background:rgba(255,107,107,0.2)" @click="memory.reset()">清空记忆</button>
+          <div v-for="m in memory.search('').slice(0, 30)" :key="m.id" class="mem-item">
+            <div class="mem-item-src">[{{ m.src }}] · {{ new Date(m.ts).toLocaleDateString() }} · imp:{{ m.imp.toFixed(1) }}</div>
+            <div class="mem-item-content">{{ m.c.slice(0, 150) }}</div>
+            <div class="mem-item-tags">{{ m.g.join(' · ') }}</div>
+            <div class="mem-item-actions">
+              <button class="act-btn-sm" @click="memory.boost(m.id, 0.2)">+重要</button>
+              <button class="act-btn-sm" @click="memory.boost(m.id, -0.2)">-不重要</button>
+              <button class="act-btn-sm del" @click="memory.forget(m.id)">遗忘</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agent Autonomy Panel -->
+      <div v-if="showAutonomy" class="sidebar">
+        <div class="sidebar-head"><span>Agent Autonomy</span><button class="icon-btn" @click="showAutonomy=false">X</button></div>
+        <div class="autonomy-panel">
+          <textarea v-model="autonomyGoal" :disabled="autonomyRunning" style="width:100%;height:60px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-tertiary);color:var(--text-primary);font-size:11px;padding:8px;resize:vertical;font-family:var(--font-mono)" placeholder="Describe your goal: multi-agent will plan, execute, and aggregate..."></textarea>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <button class="action-btn" @click="runAutonomy()" :disabled="autonomyRunning || !autonomyGoal.trim()">{{ autonomyRunning ? 'Executing...' : 'Launch Autonomy' }}</button>
+            <button class="action-btn" style="background:rgba(255,107,107,0.2)" @click="cancelAutonomy()">Cancel</button>
+          </div>
+          <div v-if="autonomy.getActiveRun()" style="margin-top:8px">
+            <div class="orch-section-title">Active Run: {{ autonomy.getActiveRun()?.goal.slice(0, 40) }}...</div>
+            <div v-for="t in autonomy.getActiveRun()?.tasks" :key="t.id" class="auto-task" :class="t.status">
+              <div class="auto-task-head"><span class="auto-task-status">{{ t.status === 'done' ? '✓' : t.status === 'running' ? '⟳' : t.status === 'failed' ? '✗' : '○' }}</span> {{ t.title }}</div>
+              <div class="auto-task-agent">{{ t.agent?.name || 'Unassigned' }}</div>
+              <div v-if="t.result" class="auto-task-result">{{ t.result.slice(0, 200) }}</div>
+            </div>
+            <div v-if="autonomyResult" class="auto-summary" v-html="renderMarkdown(autonomyResult)"></div>
+          </div>
+          <div class="orch-section-title" style="margin-top:10px">Past Runs ({{ autonomy.getRuns().length }})</div>
+          <div v-for="r in autonomy.getRuns().slice(0, 10)" :key="r.id" class="auto-run-item">
+            <div class="auto-run-goal">{{ r.goal.slice(0, 50) }} <span class="auto-run-status" :class="r.status">{{ r.status }}</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Knowledge Graph Panel -->
+      <div v-if="showGraph" class="sidebar" style="width:620px" ref="graphCanvas">
+        <div class="sidebar-head"><span>Neural Knowledge Graph</span><button class="icon-btn" @click="showGraph=false;knowledgeGraph.stop()">X</button></div>
+        <div style="display:flex;gap:6px;padding:6px 10px">
+          <button class="action-btn" @click="knowledgeGraph.start()">Play</button>
+          <button class="action-btn" @click="knowledgeGraph.stop()">Pause</button>
+        </div>
+        <svg :width="knowledgeGraph.getState().width" :height="knowledgeGraph.getState().height" style="background:#0a0a14">
+          <line v-for="e in knowledgeGraph.getState().edges" :key="e.source + e.target"
+            :x1="knowledgeGraph.getState().nodes.find(n=>n.id===e.source)?.x ?? 0"
+            :y1="knowledgeGraph.getState().nodes.find(n=>n.id===e.source)?.y ?? 0"
+            :x2="knowledgeGraph.getState().nodes.find(n=>n.id===e.target)?.x ?? 0"
+            :y2="knowledgeGraph.getState().nodes.find(n=>n.id===e.target)?.y ?? 0"
+            :stroke="knowledgeGraph.getState().nodes.find(n=>n.id===e.source)?.color ?? '#333'" stroke-opacity="0.3" stroke-width="0.5" />
+          <g v-for="n in knowledgeGraph.getState().nodes" :key="n.id">
+            <circle :cx="n.x" :cy="n.y" :r="n.size" :fill="n.color" fill-opacity="0.8" stroke="white" stroke-opacity="0.3" stroke-width="0.5" />
+            <text :x="n.x" :y="n.y + n.size + 8" text-anchor="middle" fill="#aaa" font-size="6" font-family="monospace">{{ n.label.slice(0, 10) }}</text>
+          </g>
+        </svg>
       </div>
     </div>
 </template>
