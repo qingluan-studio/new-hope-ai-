@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
-export default defineConfig({
-  base: '/new-hope-ai-/',
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? '/new-hope-ai-/' : '/',
   plugins: [vue()],
   build: {
     chunkSizeWarningLimit: 1000,
@@ -21,4 +21,4 @@ export default defineConfig({
   server: {
     allowedHosts: ['.monkeycode-ai.online']
   }
-})
+}))
