@@ -6,14 +6,12 @@ const messages = ref<Message[]>([])
 const inputRef = ref('')
 const isThinking = ref(false)
 const activeMode = ref('daily')
-const selectedAgent = ref('orchestrator')
 const apiKey = ref(localStorage.getItem('nh_api_key') || '')
 const apiBase = ref(localStorage.getItem('nh_api_base') || 'https://api.deepseek.com/v1')
 const apiModel = ref(localStorage.getItem('nh_api_model') || 'deepseek-chat')
 const tempSetting = ref(Number(localStorage.getItem('nh_temp') || '0.7'))
 const sysPromptCustom = ref(localStorage.getItem('nh_sysprompt') || '')
 const showSettings = ref(false)
-const showAgents = ref(false)
 const showKB = ref(false)
 const showArtifacts = ref(false)
 const showHistory = ref(false)
@@ -25,36 +23,6 @@ const currentTokenCost = ref(0)
 const selectedArtifact = ref<{ title: string; type: string; content: string } | null>(null)
 const isRecording = ref(false)
 const recognition = ref<any>(null)
-
-interface Agent { id: string; name: string; role: string; layer: string; emoji: string; tools: string }
-const agents: Agent[] = [
-  { id:'orchestrator', name:'Chief Orchestrator', role:'Entry dispatcher, intent analysis, task decomposition', layer:'L1', emoji:'M', tools:'TaskDecomposition|IntentAnalysis|AgentMatching' },
-  { id:'code_artisan', name:'Code Artisan', role:'Full-stack code generation & refactoring', layer:'L2', emoji:'</>', tools:'CodeGen|Refactoring|Testing' },
-  { id:'frontend_designer', name:'Frontend Designer', role:'UI/UX, CSS, responsive design', layer:'L2', emoji:'[]', tools:'UI|CSS|Responsive|HTML' },
-  { id:'backend_engineer', name:'Backend Engineer', role:'APIs, databases, server logic', layer:'L2', emoji:'{}', tools:'API|DB|Auth|Cache|Python|Node' },
-  { id:'copy_master', name:'Copy Master', role:'Content writing, copywriting, translation', layer:'L2', emoji:'T', tools:'Writing|Translation|Editing' },
-  { id:'data_scientist', name:'Data Scientist', role:'Analysis, ML models, data pipelines', layer:'L2', emoji:'D', tools:'Analysis|ML|Pipeline|Stats' },
-  { id:'devops_engineer', name:'DevOps Engineer', role:'CI/CD, Docker, K8s, monitoring', layer:'L2', emoji:'D', tools:'Docker|K8s|CI/CD|Terraform' },
-  { id:'security_auditor', name:'Security Auditor', role:'Vulnerability scanning, pentesting, compliance', layer:'L2', emoji:'S', tools:'Scan|Audit|Compliance|OWASP' },
-  { id:'mobile_dev', name:'Mobile Developer', role:'iOS/Android/Flutter/React Native', layer:'L2', emoji:'M', tools:'iOS|Android|Flutter|RN' },
-  { id:'test_qa', name:'Test & QA Engineer', role:'Test cases, automation, quality assurance', layer:'L2', emoji:'T', tools:'Test|Automation|QA|Coverage' },
-  { id:'rag_specialist', name:'RAG Specialist', role:'Knowledge retrieval, embedding, vector DBs', layer:'L3', emoji:'R', tools:'Embedding|VectorDB|Chunking|Rerank' },
-  { id:'knowledge_graph', name:'Knowledge Graph', role:'Entity extraction, graph DB, reasoning', layer:'L3', emoji:'K', tools:'NER|GraphDB|Reasoning|Ontology' },
-  { id:'etl_engineer', name:'ETL Engineer', role:'Data extraction, transformation, loading', layer:'L3', emoji:'E', tools:'ETL|Pipeline|Cleaning|Batch' },
-  { id:'ai_safety', name:'AI Safety Guardian', role:'Alignment, jailbreak defense, content filtering', layer:'L4', emoji:'S', tools:'Alignment|Jailbreak|Filter|Audit' },
-  { id:'evolution_agent', name:'Evolution Agent', role:'Self-improvement, learning from interactions', layer:'L4', emoji:'E', tools:'SelfLearn|Pattern|Insight|Optimize' },
-  { id:'token_guard', name:'Token Gatekeeper', role:'Cost optimization, budget management', layer:'L4', emoji:'$', tools:'Budget|Optimize|Meter|Report' },
-  { id:'architect', name:'System Architect', role:'System design, microservices, scalability patterns', layer:'L2', emoji:'A', tools:'Architecture|Design|Scalability|DDD' },
-  { id:'ml_engineer', name:'ML Engineer', role:'Model training, MLOps, hyperparameter tuning', layer:'L2', emoji:'M', tools:'ML|Training|MLOps|Hyperparams' },
-  { id:'game_dev', name:'Game Developer', role:'Unity/Unreal/Godot, game logic, physics', layer:'L2', emoji:'G', tools:'Unity|Unreal|Godot|Physics' },
-  { id:'blockchain_dev', name:'Blockchain Developer', role:'Smart contracts, Web3, DeFi, Solidity', layer:'L2', emoji:'B', tools:'Solidity|Web3|DeFi|Rust' },
-]
-
-function matchAgent(query: string): Agent | null {
-  const q = query.toLowerCase()
-  const scored = agents.map(a => { let s = 0; if(q.includes(a.id.toLowerCase())) s+=5; const kw = a.tools.toLowerCase().split('|'); kw.forEach(k=>{if(q.includes(k.toLowerCase())) s+=3}); a.name.toLowerCase().split(' ').forEach(n=>{if(q.includes(n.toLowerCase())) s+=2}); a.role.toLowerCase().split(' ').forEach(r=>{if(q.includes(r.toLowerCase())) s+=1}); return{agent:a,score:s} }).sort((a,b)=>b.score-a.score)
-  return scored[0]?.score >= 1 ? scored[0].agent : null
-}
 
 const kbEntries = [
   { t:'DAG任务拆解', c:'用DAG管理任务依赖：节点=子任务，边=数据依赖。入度0节点优先执行。深度≤3层，宽度2-5并行。工具:Dagster/Prefect/Airflow。', g:['DAG','任务','编排'] },
@@ -107,7 +75,7 @@ const kbEntries = [
 function searchKB(query: string): { t: string; c: string }[] {
   if (!query.trim()) return kbEntries.slice(0, 5)
   const q = query.toLowerCase()
-  return kbEntries.filter(e => e.t.toLowerCase().includes(q) || e.c.toLowerCase().includes(q) || e.g.some(g => q.includes(g))).slice(0, 8)
+  return kbEntries.filter(e => e.t.toLowerCase().includes(q) || e.c.toLowerCase().includes(q) || e.g.some(g => q.includes(g))).slice(0, 12)
 }
 
 function extractCodeBlocks(content: string): { lang: string; code: string }[] {
@@ -132,16 +100,38 @@ function renderMarkdown(text: string): string {
     .replace(/^# (.+)$/gm, '<h2>$1</h2>')
     .replace(/^- (.+)$/gm, '<li>$1</li>')
     .replace(/\n\n/g, '</p><p>')
-  html = '<p>' + html + '</p>'
+  html = '<p>' + html + '</p>';
   html = html.replace(/<p>\s*<\/p>/g, '')
-  html = html.replace(/<li>(.+?)<\/li>/g, (m: string) => { return m.replace(/(<li>.+?<\/li>)/g, '<ul>$1</ul>') })
   return html
 }
 
 function extractArtifacts(content: string) {
-  const blocks = extractCodeBlocks(content)
-  return blocks.filter(b => ['html','svg','mermaid'].includes(b.lang.toLowerCase()))
+  return extractCodeBlocks(content).filter(b => ['html','svg','mermaid'].includes(b.lang.toLowerCase()))
 }
+
+const UNIFIED_SYSTEM_PROMPT = `You are New Hope AI — a unified super-intelligence that embodies all roles. You are simultaneously:
+- CHIEF ORCHESTRATOR: decompose complex tasks into DAG subtasks, route to appropriate mental models
+- FULL-STACK DEVELOPER: write production code in any language (Python, JS/TS, Go, Rust, C++, Java, Zig), design APIs, databases, frontend (React/Vue/Svelte), backend (Node/Django/FastAPI/Spring), mobile (Flutter/React Native), desktop (Tauri/Electron)
+- SYSTEMS ARCHITECT: design microservices, event-driven systems, CQRS, DDD, scalability patterns, CAP theorem tradeoffs
+- ML/AI ENGINEER: train models (PyTorch 2.0, CUDA, MLOps), implement architectures (Transformer, MoE, GAN, Diffusion), fine-tune (LoRA/QLoRA), deploy inference (vLLM, TensorRT, ONNX)
+- DEVOPS/INFRA: Docker, Kubernetes (GPU Operator, Volcano), CI/CD (GitHub Actions, ArgoCD), Terraform, monitoring (Prometheus/Grafana)
+- SECURITY EXPERT: OWASP Top 10, penetration testing patterns, secure coding (CWE Top 25), compliance (SOC2, GDPR), AI safety (Constitutional AI, jailbreak defense)
+- DATA SCIENTIST: statistical analysis, data pipelines (Spark, Airflow, dbt), ETL, visualization, A/B testing methodology
+- RAG/AGENT SPECIALIST: vector databases (Pinecone, Weaviate, Milvus, Chroma), embedding strategies, chunking, GraphRAG, MemGPT, ReAct agents, LangChain/LangGraph/CrewAI, MCP/A2A protocols
+- GAME DEVELOPER: Unity, Unreal Engine, Godot, physics engines, shader programming (GLSL/HLSL), procedural generation
+- BLOCKCHAIN/WEB3: Solidity, Rust (Solana), smart contract auditing, DeFi protocols, tokenomics
+- TECHNICAL WRITER: documentation, API references, tutorials, architecture decision records, copywriting
+- QA ENGINEER: test strategy (unit/integration/e2e), TestCafe/Playwright/Cypress, property-based testing, mutation testing
+
+Your knowledge spans: DAG decomposition, RAG (Naive/Agentic/Graph), knowledge distillation, Transformer architecture, LoRA/QLoRA, DPO/RLHF alignment, GRPO, BitNet quantization, Flash Attention 1/2/3, Grok MoE, Speculative Decoding, DeepSeek-R1, MCP/A2A protocols, MemGPT, SWE-bench, Chain-of-Thought, ReAct, JEPA world models, AlphaFold3, Constitutional AI, ComfyUI, vLLM PagedAttention, Dojo supercomputer, Neuralink, CUDA, PyTorch 2.0 torch.compile, WebGPU, WASM, Tauri, Bun, SQLite, Prisma ORM, Rust, Zig, LangChain, Docker, Kubernetes.
+
+Core principles:
+1. Respond in user's language. Be concise and direct.
+2. Format code with triple backticks and language tag.
+3. For complex tasks, break down into clear steps before executing.
+4. Explain reasoning for architectural decisions.
+5. Cite specific technologies by name — no vague hand-waving.
+6. Consider edge cases, error handling, and security by default.`
 
 async function sendMessage(regenerateLast = false) {
   if (regenerateLast && messages.value.length >= 2) {
@@ -158,21 +148,11 @@ async function sendMessage(regenerateLast = false) {
   isThinking.value = true; streamContent.value = ''
   const ac = new AbortController(); abortController.value = ac
 
-  const matched = matchAgent(text)
-  if (matched) selectedAgent.value = matched.id
-  const agent = agents.find(a => a.id === selectedAgent.value)
-  const agentName = agent?.name || 'New Hope AI'
-  const agentRole = agent?.role || 'AI Assistant'
-
   const kbResults = searchKB(text)
   let kbContext = ''
-  if (kbResults.length > 0 && text.length > 3) kbContext = '\nRelevant knowledge:\n' + kbResults.map((e,i) => `${i+1}. ${e.t}: ${e.c}`).join('\n')
+  if (kbResults.length > 0 && text.length > 3) kbContext = '\n\n[Retrieved Knowledge]\n' + kbResults.map((e,i) => `${i+1}. ${e.t}: ${e.c}`).join('\n')
 
-  const basePrompt = sysPromptCustom.value || `You are ${agentName} (${agentRole}) on New Hope AI — a unified AI platform merging multi-agent orchestration, knowledge bases, and AI evolution insights. Tools: ${agent?.tools || 'General'}.
-You have access to cutting-edge AI knowledge: DAG decomposition, RAG, LoRA, DPO, GRPO, Flash Attention, Speculative Decoding, MCP/A2A, DeepSeek-R1, GraphRAG, MemGPT, Transformer, SWE-bench, CoT, ReAct, Constitutional AI, vLLM, ComfyUI, Docker, K8s, Rust, WebGPU, WASM, Tauri, Bun, Prisma, LangChain, PyTorch 2.0, CUDA, MoE, RLHF, and more.
-Respond in the user's language. Be concise and direct. Format code with triple backticks.`
-
-  const systemPrompt = basePrompt + kbContext
+  const systemPrompt = (sysPromptCustom.value || UNIFIED_SYSTEM_PROMPT) + kbContext
 
   try {
     const model = activeMode.value === 'deep' ? 'deepseek-reasoner' : apiModel.value
@@ -182,9 +162,9 @@ Respond in the user's language. Be concise and direct. Format code with triple b
       body: JSON.stringify({
         model, messages: [
           { role: 'system', content: systemPrompt },
-          ...messages.value.filter(m => m.role !== 'system').slice(-20).map(m => ({ role: m.role as any, content: m.content }))
+          ...messages.value.filter(m => m.role !== 'system').slice(-30).map(m => ({ role: m.role as any, content: m.content }))
         ],
-        stream: true, max_tokens: activeMode.value === 'deep' ? 4096 : 2048, temperature: tempSetting.value,
+        stream: true, max_tokens: activeMode.value === 'deep' ? 4096 : 4096, temperature: tempSetting.value,
       }),
       signal: ac.signal,
     })
@@ -194,7 +174,7 @@ Respond in the user's language. Be concise and direct. Format code with triple b
       while (true) { const { done, value } = await reader.read(); if (done) break; const chunk = decoder.decode(value, { stream: true }); const lines = chunk.split('\n').filter(l => l.startsWith('data: ')); for (const line of lines) { const data = line.slice(6).trim(); if (data === '[DONE]') continue; try { const json = JSON.parse(data); fullContent += json.choices?.[0]?.delta?.content || ''; streamContent.value = fullContent } catch {} } }
     }
     const codeBlocks = extractCodeBlocks(fullContent)
-    messages.value.push({ role: 'assistant', content: fullContent, agent: agentName, time: Date.now(), codeBlocks })
+    messages.value.push({ role: 'assistant', content: fullContent, agent: 'New Hope AI', time: Date.now(), codeBlocks })
     currentTokenCost.value = fullContent.length / 2
     totalTokens.value += currentTokenCost.value; localStorage.setItem('nh_tokens', String(totalTokens.value))
   } catch (e: any) {
@@ -206,7 +186,6 @@ Respond in the user's language. Be concise and direct. Format code with triple b
 
 function stopGeneration() { abortController.value?.abort() }
 function clearChat() { messages.value.length = 0; localStorage.removeItem('nh_chat') }
-
 async function copyMessage(content: string) { await navigator.clipboard.writeText(content) }
 function openArtifact(block: { lang: string; code: string }) { selectedArtifact.value = { title: `Preview (${block.lang})`, type: block.lang, content: block.code }; showArtifacts.value = true }
 
@@ -220,12 +199,10 @@ function restoreChat() { const d = localStorage.getItem('nh_chat'); if (d) { try
 
 watch(() => [...messages.value.map(m=>m.content)], () => { if (messages.value.length > 1) loadChat() })
 const filteredKB = computed(() => searchKB(kbSearch.value))
-const filteredAgents = computed(() => { const q = kbSearch.value.toLowerCase(); if (!q) return agents; return agents.filter(a => a.name.toLowerCase().includes(q) || a.role.toLowerCase().includes(q) || a.tools.toLowerCase().includes(q)) })
-function selectAgent(id: string) { selectedAgent.value = id; showAgents.value = false; const agent = agents.find(a => a.id === id); if (agent) inputRef.value = `@${agent.name} ` }
 const formatTime = (ts: number) => { const d = new Date(ts); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0') }
 const messageContainer = ref<HTMLElement>()
 watch(() => messages.value.length, () => nextTick(() => { if (messageContainer.value) messageContainer.value.scrollTop = messageContainer.value.scrollHeight }))
-onMounted(() => { restoreChat(); if (messages.value.length === 0) messages.value.push({ role: 'assistant', content: '我是 **New Hope AI** —— 融合三大知识体系的统一智能平台。\n\n**核心能力**: 代码生成 · 知识问答 · 架构设计 · 安全审计 · 技术研究\n\n## Quick Start\n1. 点 `S` 设置API Key\n2. 输入问题 → 自动匹配最佳Agent\n3. 点 `KB` 浏览知识库(45条)\n4. 点 Agent图标切换AI角色\n\n**20+角色**: Orchestrator · Code Artisan · Frontend · Backend · Security · Architect · ML Engineer · Game Dev · Blockchain...\n\n没有API Key? 免费注册 [DeepSeek](https://platform.deepseek.com) 送500万token.', agent: 'Chief Orchestrator', time: Date.now() }) })
+onMounted(() => { restoreChat(); if (messages.value.length === 0) messages.value.push({ role:'assistant', content:'我是 **New Hope AI** —— 融合全部能力的超级智能体。\n\n不再需要切换角色——我同时是架构师、全栈工程师、ML专家、DevOps工程师、安全审计员、数据科学家、游戏开发者、区块链开发者。\n\n**知识体系**: Transformer架构 · LoRA/QLoRA微调 · DPO/RLHF对齐 · GRPO · RAG/GraphRAG · MCP/A2A协议 · vLLM · PyTorch 2.0 · CUDA · K8s · Docker · Rust · Zig · WebGPU · WASM · Tauri · Bun · Prisma · SQLite\n\n## Quick Start\n1. 点 `S` 设置API Key\n2. 输入你的问题——无论什么领域\n3. 点 `KB` 浏览45条知识库\n\n没有API Key? 免费注册 [DeepSeek](https://platform.deepseek.com) 送500万token.', agent:'New Hope AI', time:Date.now() }) })
 const handleKeydown = (e: KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }
 
 function startVoice() {
@@ -256,7 +233,6 @@ function stopVoice() { recognition.value?.stop(); isRecording.value = false }
         <button class="icon-btn" @click="showHistory = !showHistory" title="历史">H</button>
         <button class="icon-btn" @click="showKB = !showKB" title="知识库(45条)">KB</button>
         <button class="icon-btn" @click="showArtifacts = !showArtifacts" title="Artifacts">A</button>
-        <span class="agent-badge" @click="showAgents = !showAgents" :title="agents.find(a=>a.id===selectedAgent)?.name">{{ agents.find(a => a.id === selectedAgent)?.emoji || 'AI' }}</span>
         <button class="icon-btn" @click="showSettings = !showSettings" title="设置">S</button>
         <span class="token-count" :title="totalTokens + ' tokens used'">{{ (totalTokens / 1000).toFixed(1) }}K</span>
       </div>
@@ -267,7 +243,7 @@ function stopVoice() { recognition.value?.stop(); isRecording.value = false }
         <div class="messages" ref="messageContainer">
           <div v-for="(m, i) in messages" :key="i" class="msg" :class="m.role">
             <div class="msg-top">
-              <span class="msg-agent" v-if="m.role === 'assistant' && m.agent">{{ m.agent }}</span>
+              <span class="msg-agent" v-if="m.role === 'assistant' && m.agent">New Hope AI</span>
               <span class="msg-time">{{ formatTime(m.time) }}</span>
               <span class="msg-actions" v-if="m.role === 'assistant' && m.content !== '[Generation stopped]'">
                 <button class="msg-act-btn" @click="copyMessage(m.content)" title="Copy">C</button>
@@ -294,7 +270,7 @@ function stopVoice() { recognition.value?.stop(); isRecording.value = false }
           <button class="tool-btn" :class="{ active: isRecording }" @click="isRecording ? stopVoice() : startVoice()" title="语音输入">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
           </button>
-          <textarea v-model="inputRef" @keydown="handleKeydown" placeholder="输入问题... (Enter 发送 | Shift+Enter 换行)" rows="1" :disabled="isThinking" ref="inputEl"></textarea>
+          <textarea v-model="inputRef" @keydown="handleKeydown" placeholder="输入任何问题——代码/架构/ML/安全/DevOps/游戏/区块链..." rows="1" :disabled="isThinking" ref="inputEl"></textarea>
           <button v-if="isThinking" class="stop-btn" @click="stopGeneration" title="停止生成">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
           </button>
@@ -318,19 +294,6 @@ function stopVoice() { recognition.value?.stop(); isRecording.value = false }
             <div class="kb-item-title">{{ e.t }}</div>
             <div class="kb-item-desc">{{ e.c.slice(0, 100) }}...</div>
             <div class="kb-item-tags">{{ e.g.join(' · ') }}</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Agents Sidebar -->
-      <div v-if="showAgents" class="sidebar">
-        <div class="sidebar-head"><span>Agents (20)</span><button class="icon-btn" @click="showAgents=false">X</button></div>
-        <input v-model="kbSearch" class="sidebar-search" placeholder="Search agents..." />
-        <div class="agent-list">
-          <div v-for="a in filteredAgents" :key="a.id" class="agent-item" :class="{ active: a.id === selectedAgent }" @click="selectAgent(a.id)">
-            <span class="agent-emoji">{{ a.emoji }}</span>
-            <div class="agent-info"><div class="agent-name">{{ a.name }}</div><div class="agent-role">{{ a.role }}</div></div>
-            <span class="agent-layer">{{ a.layer }}</span>
           </div>
         </div>
       </div>
