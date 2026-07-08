@@ -1,1 +1,1 @@
-{"root":["./src/main.ts","./src/data/knowledgeBase.ts","./src/App.vue","./env.d.ts"],"version":"5.7.3"}
+{"root":["./src/main.ts","./src/data/knowledgeBase.ts","./src/stores/sessionStore.ts","./src/utils/mermaid.ts","./src/App.vue","./env.d.ts"],"version":"5.7.3"}
