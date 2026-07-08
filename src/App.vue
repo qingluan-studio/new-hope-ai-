@@ -20,6 +20,8 @@ import { useSuperAgent } from './stores/superAgent'
 import { useCustomToolBuilder } from './stores/customToolBuilder'
 import { useEnvBuilder } from './stores/envBuilder'
 import { usePreloadEngine } from './stores/preloadEngine'
+import { useTimeDilation } from './stores/timeDilation'
+import { useCrystallization } from './stores/crystallization'
 import { initDataIntegrity } from './utils/dataIntegrity'
 import { accelerator } from './utils/devAccelerator'
 import './hljs-theme.css'
@@ -41,6 +43,8 @@ const superAgent = useSuperAgent()
 const toolBuilder = useCustomToolBuilder()
 const envBuilder = useEnvBuilder()
 const preload = usePreloadEngine()
+const timeDilation = useTimeDilation()
+const crystallizer = useCrystallization()
 
 const sessions = ref<Session[]>([])
 const currentSessionId = ref('')
@@ -69,6 +73,14 @@ const showToolBuilder = ref(false)
 const showEnvBuilder = ref(false)
 const showPreload = ref(false)
 const preloadQuery = ref('')
+const showTimeDilation = ref(false)
+const showEvolutionV2 = ref(false)
+const showCrystallization = ref(false)
+const timeScale = ref(10000000000)
+const activeTDSessionId = ref('')
+const cryFilterTier = ref('')
+const cryFilterType = ref('')
+const cryImportJson = ref('')
 const preloadTopicRels: Record<string, string[]> = {
   'Transformer': ['RAG', '微调', '推理', 'NLP'],
   'RAG': ['向量库', 'Embedding', '检索', 'LangChain'],
@@ -382,6 +394,114 @@ function runPreload() {
   if (!q) return
   preload.processQuery(q)
 }
+
+function startTDDilation() {
+  if (!activeTDSessionId.value) {
+    const session = timeDilation.createSession(timeScale.value)
+    activeTDSessionId.value = session.id
+  }
+  timeDilation.startEvolution(activeTDSessionId.value, 200)
+}
+
+function stopTDDilation() {
+  if (activeTDSessionId.value) {
+    timeDilation.stopEvolution(activeTDSessionId.value)
+  }
+}
+
+function getTDReport() {
+  if (!activeTDSessionId.value) return null
+  return timeDilation.getReport(activeTDSessionId.value)
+}
+
+function harvestArtifacts() {
+  if (!activeTDSessionId.value) return []
+  return timeDilation.harvestArtifacts(activeTDSessionId.value, 1)
+}
+
+function exportTDKnowledge() {
+  if (!activeTDSessionId.value) return ''
+  return timeDilation.exportCrystallized(activeTDSessionId.value)
+}
+
+function evolveSelfReflect() {
+  evolution.selfReflect()
+}
+
+function evolveProposeMutation() {
+  evolution.proposeMutation(
+    'App.vue',
+    '// original',
+    '// mutated: optimized version',
+    `自我优化提案 - ${new Date().toLocaleTimeString()}`,
+    0.65,
+  )
+}
+
+function evolveAcceptMutation(id: string) {
+  evolution.applyMutation(id)
+}
+
+function evolveRejectMutation(id: string) {
+  evolution.rejectMutation(id)
+}
+
+function evolveRollbackMutation(id: string) {
+  const original = evolution.rollbackMutation(id)
+  if (original) alert('已回滚到原始代码')
+}
+
+function crystallizeNew() {
+  const title = prompt('晶化标题:')
+  if (!title) return
+  const content = prompt('内容:')
+  if (!content) return
+  crystallizer.crystallize(title, 'insight', content, '手动晶化', ['manual'])
+}
+
+function refineCrystal(id: string) {
+  crystallizer.refine(id)
+}
+
+function fuseCrystals(idA: string, idB: string) {
+  const result = crystallizer.fuse(idA, idB)
+  if (!result) alert('融合失败!')
+}
+
+function createCrystalPack() {
+  const name = prompt('晶化包名称:')
+  if (!name) return
+  const ids = crystallizer.getCrystals().slice(0, 5).map(c => c.id)
+  crystallizer.createPack(name, '手动创建晶化包', ids)
+}
+
+function exportCrystalPack(id: string) {
+  const json = crystallizer.exportPack(id)
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = `crystal-pack-${Date.now()}.json`
+  a.click(); URL.revokeObjectURL(url)
+}
+
+function importCrystals() {
+  const count = crystallizer.importCrystals(cryImportJson.value)
+  if (count > 0) alert(`成功导入 ${count} 个晶化`)
+  cryImportJson.value = ''
+}
+
+function exportTDAndCopy() {
+  const json = exportTDKnowledge()
+  if (json) {
+    navigator.clipboard.writeText(json).then(() => alert('已复制到剪贴板'))
+  }
+}
+
+function getFilteredCrystals() {
+  const tier = cryFilterTier.value as any || undefined
+  const type = cryFilterType.value as any || undefined
+  return crystallizer.getCrystals({ tier, type })
+}
 </script>
 
 <template>
@@ -415,6 +535,9 @@ function runPreload() {
         <button class="icon-btn" @click="showToolBuilder = !showToolBuilder" title="自建工具">+</button>
         <button class="icon-btn" @click="showEnvBuilder = !showEnvBuilder" title="自建环境">@</button>
         <button class="icon-btn" @click="showPreload = !showPreload" title="预知加载">></button>
+        <button class="icon-btn" @click="showTimeDilation = !showTimeDilation" title="时间膨胀">W</button>
+        <button class="icon-btn" @click="showEvolutionV2 = !showEvolutionV2" title="进化引擎V2">@</button>
+        <button class="icon-btn" @click="showCrystallization = !showCrystallization" title="晶化管理">%</button>
         <span class="token-count" :title="totalTokens + ' tokens used'">{{ (totalTokens / 1000).toFixed(1) }}K</span>
       </div>
     </header>
@@ -978,6 +1101,147 @@ function runPreload() {
             <span>命中率: {{ preload.hitRate.value }}</span>
             <button @click="preload.clearPreloads()">清空</button>
           </div>
+        </div>
+      </div>
+
+      <!-- 时间膨胀 Panel -->
+      <div v-if="showTimeDilation" class="sidebar">
+        <div class="sidebar-head">
+          <span>时间膨胀引擎</span>
+          <button class="icon-btn" @click="showTimeDilation=false">X</button>
+        </div>
+        <div class="time-panel">
+          <div class="time-header">
+            <span style="font-size:7px;color:var(--text-tertiary);white-space:nowrap">时间倍率:</span>
+            <input v-model.number="timeScale" class="td-scale-input" placeholder="1e10" />
+            <button v-if="!getTDReport()?.sessionId || !getTDReport()?.active" class="td-btn start" @click="startTDDilation()">启动</button>
+            <button v-else class="td-btn stop" @click="stopTDDilation()">停止</button>
+            <button class="td-btn" @click="activeTDSessionId='';timeDilation.reset()">重置</button>
+          </div>
+          <div v-if="getTDReport()" class="td-realtime">
+            <div style="display:flex;flex-direction:column;gap:2px;flex:1">
+              <span class="td-realtime-label">现实耗时</span>
+              <span class="td-realtime-val">{{ (getTDReport()!.elapsedRealMs / 1000).toFixed(1) }}s</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;flex:1">
+              <span class="td-realtime-label">模拟时间</span>
+              <span class="td-realtime-val">{{ (getTDReport()!.elapsedSimYears / 1e6).toFixed(2) }}M年</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;flex:1">
+              <span class="td-realtime-label">纪元</span>
+              <span class="td-realtime-val">{{ getTDReport()!.currentEra }}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;flex:1">
+              <span class="td-realtime-label">文明等级</span>
+              <span class="td-realtime-val">{{ getTDReport()!.highestCivLevel }}</span>
+            </div>
+          </div>
+          <div class="td-wall">
+            <span class="td-wall-icon">[+]</span>
+            <span class="td-wall-label">绝对物理隔离墙</span>
+            <span class="td-wall-bar"><span class="td-wall-fill" :style="{ width: (getTDReport()?.wallIntegrity || 0) + '%' }"></span></span>
+            <span class="td-wall-pct">{{ getTDReport()?.wallIntegrity || 0 }}%</span>
+          </div>
+          <div class="td-epic-log" v-if="getTDReport()">
+            <div class="orch-section-title">纪元事件</div>
+            <div v-for="(ep, i) in [...(getTDReport()?.epochs || [])].reverse().slice(0,8)" :key="i" class="td-epic-item">
+              <span class="td-epic-era">[{{ ep.eraName }}]</span>
+              <span class="td-epic-text">{{ ep.breakthroughs[ep.breakthroughs.length-1] || ep.techDiscovered[ep.techDiscovered.length-1] || '文明演化中...' }}</span>
+            </div>
+          </div>
+          <div class="td-civ-list" v-if="getTDReport()">
+            <div class="orch-section-title">文明族群</div>
+            <div v-for="civ in (timeDilation.state.sessions.find(s=>s.id===activeTDSessionId)?.civilizations || [])" :key="civ.id" class="td-civ-card">
+              <div class="td-civ-name">{{ civ.name }}</div>
+              <div class="td-civ-meta">
+                <span class="td-civ-lvl">LV.{{ civ.level }}</span>
+                <span>人口: {{ (civ.population/1e4).toFixed(1) }}万</span>
+                <span>科技: {{ Object.keys(civ.techTree).length }}项</span>
+                <span>模拟: {{ (civ.totalSimYears/1e6).toFixed(1) }}M年</span>
+              </div>
+            </div>
+          </div>
+          <div class="orch-section-title">产出艺术结晶 ({{ getTDReport()?.totalArtifacts || 0 }})</div>
+          <div class="td-artifacts">
+            <div v-for="a in harvestArtifacts().slice(0,15)" :key="a.id" class="td-artifact" @click="crystallizer.crystallize(a.name, a.type === 'algorithm' ? 'algorithm' : 'architecture', `// ${a.name} - T${a.tier}\n// 纪元:${a.discoveredAtEra} 强度:${a.power}\n${a.pseudoCode || ''}`, '时间膨胀', ['time-dilation', 'tier-'+a.tier])">
+              <span class="td-art-tier" :class="'t'+a.tier">T{{ a.tier }}</span>
+              <span class="td-art-name">{{ a.name }}</span>
+              <span class="td-art-power">{{ a.power }}</span>
+            </div>
+            <div v-if="harvestArtifacts().length === 0" style="font-size:7px;color:var(--text-tertiary);padding:8px">等待文明产出...</div>
+          </div>
+          <button class="action-btn" @click="exportTDAndCopy()">导出结晶</button>
+        </div>
+      </div>
+
+      <!-- 进化引擎V2 Panel -->
+      <div v-if="showEvolutionV2" class="sidebar">
+        <div class="sidebar-head"><span>进化引擎 V2</span><button class="icon-btn" @click="showEvolutionV2=false">X</button></div>
+        <div class="evo2-panel">
+          <div class="orch-section-title">内驱力引擎</div>
+          <div class="drive-chart">
+            <div class="drive-row"><span class="drive-label">焦虑</span><span class="drive-bar"><span class="drive-fill anxiety" :style="{ width: evolution.state.selfDrive.anxiety + '%' }"></span></span><span class="drive-val">{{ evolution.state.selfDrive.anxiety.toFixed(0) }}</span></div>
+            <div class="drive-row"><span class="drive-label">自信</span><span class="drive-bar"><span class="drive-fill confidence" :style="{ width: evolution.state.selfDrive.confidence + '%' }"></span></span><span class="drive-val">{{ evolution.state.selfDrive.confidence.toFixed(0) }}</span></div>
+            <div class="drive-row"><span class="drive-label">好奇</span><span class="drive-bar"><span class="drive-fill curiosity" :style="{ width: evolution.state.selfDrive.curiosity + '%' }"></span></span><span class="drive-val">{{ evolution.state.selfDrive.curiosity.toFixed(0) }}</span></div>
+            <div class="drive-row"><span class="drive-label">雄心</span><span class="drive-bar"><span class="drive-fill ambition" :style="{ width: evolution.state.selfDrive.ambition + '%' }"></span></span><span class="drive-val">{{ evolution.state.selfDrive.ambition.toFixed(0) }}</span></div>
+          </div>
+          <span class="auto-lvl">自主等级: {{ evolution.state.autonomyLevel.toFixed(1) }}/10</span>
+          <div class="orch-section-title">自我反思</div>
+          <button class="action-btn" style="margin-top:4px;margin-bottom:8px" @click="evolveSelfReflect()">触发自我反思</button>
+          <div class="reflect-log" v-if="evolution.getReflections().length > 0">
+            <div v-for="(r,i) in evolution.getReflections().slice(0,8)" :key="i" class="reflect-line">{{ r }}</div>
+          </div>
+          <div class="orch-section-title">代码突变提案 ({{ evolution.state.mutationHistory.total }})</div>
+          <button class="action-btn" style="margin-top:4px;margin-bottom:8px" @click="evolveProposeMutation()">生成突变提案</button>
+          <div class="mutation-list">
+            <div v-for="m in evolution.getMutations().slice(0,10)" :key="m.id" class="mutation-item">
+              <div class="mut-top">
+                <span class="mut-file">{{ m.targetFile }}</span>
+                <span class="mut-conf">{{ (m.confidence*100).toFixed(0) }}%</span>
+                <span style="font-size:6px;color:var(--text-tertiary);margin-left:auto">{{ new Date(m.timestamp).toLocaleTimeString() }}</span>
+              </div>
+              <div class="mut-reason">{{ m.reasoning }}</div>
+              <div class="mut-actions">
+                <button v-if="!m.applied" class="accept" @click="evolveAcceptMutation(m.id)">接受</button>
+                <button v-if="!m.applied" class="reject" @click="evolveRejectMutation(m.id)">拒绝</button>
+                <button v-if="m.applied && m.rollbackAvailable" class="reject" @click="evolveRollbackMutation(m.id)">回滚</button>
+                <span v-if="m.applied && !m.rollbackAvailable" style="font-size:6px;color:var(--green)">已应用</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 晶化管理 Panel -->
+      <div v-if="showCrystallization" class="sidebar">
+        <div class="sidebar-head"><span>晶化管理</span><button class="icon-btn" @click="showCrystallization=false">X</button></div>
+        <div class="cry-panel">
+          <div class="cry-toolbar">
+            <select v-model="cryFilterTier"><option value="">全部等级</option><option value="raw">Raw</option><option value="refined">Refined</option><option value="polished">Polished</option><option value="diamond">Diamond</option></select>
+            <select v-model="cryFilterType"><option value="">全部类型</option><option value="code">Code</option><option value="concept">Concept</option><option value="architecture">Architecture</option><option value="algorithm">Algorithm</option><option value="pattern">Pattern</option><option value="insight">Insight</option></select>
+            <button class="cry-btn" @click="crystallizeNew()">+ 晶化</button>
+          </div>
+          <div class="orch-section-title">晶化 ({{ crystallizer.state.crystals.length }})</div>
+          <div v-for="c in getFilteredCrystals().slice(0,20)" :key="c.id" class="cry-item">
+            <div class="cry-top"><span class="cry-name">{{ c.title }}</span><span class="cry-tier" :class="c.tier">{{ c.tier }}</span><span class="cry-type">{{ c.type }}</span></div>
+            <div class="cry-tags"><span v-for="t in c.tags.slice(0,5)" :key="t" class="cry-tag">{{ t }}</span></div>
+            <div class="cry-actions">
+              <button v-if="c.tier !== 'diamond'" @click="refineCrystal(c.id)">精炼</button>
+              <button class="fuse" @click="fuseCrystals(c.id, getFilteredCrystals()[0]?.id || c.id)">融合</button>
+              <button @click="crystallizer.deleteCrystal(c.id)">删除</button>
+            </div>
+          </div>
+          <div v-if="getFilteredCrystals().length === 0" style="font-size:7px;color:var(--text-tertiary);padding:8px;text-align:center">从时间膨胀中收获艺术结晶</div>
+          <div class="orch-section-title">晶化包 ({{ crystallizer.state.packs.length }})</div>
+          <div v-for="p in crystallizer.getPacks()" :key="p.id" class="cry-pack-item">
+            <div class="cry-pack-name">{{ p.name }}</div>
+            <div class="cry-pack-meta">{{ p.crystals.length }} 晶化 | 最高{{ p.meta.maxTier }} | {{ new Date(p.exportedAt).toLocaleDateString() }}</div>
+            <button class="cry-btn" style="margin-top:3px" @click="exportCrystalPack(p.id)">导出</button>
+          </div>
+          <button class="action-btn" @click="createCrystalPack()">创建晶化包</button>
+          <div class="orch-section-title" style="margin-top:8px">导入晶化</div>
+          <textarea v-model="cryImportJson" style="width:100%;height:60px;border:1px solid var(--border-color);border-radius:4px;background:var(--bg-tertiary);color:var(--text-primary);font-size:7px;padding:4px;resize:vertical;font-family:var(--font-mono)" placeholder="粘贴 JSON..."></textarea>
+          <button class="action-btn" @click="importCrystals()">导入</button>
         </div>
       </div>
     </div>
