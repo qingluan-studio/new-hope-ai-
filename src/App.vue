@@ -102,7 +102,6 @@ const kbEntries = [
   { t:'Groq LPU推理', c:'全球最快推理500tok/s。专有LPU芯片实现亚毫秒首字延迟。免费API每天数万次调用，支持Llama/Mixtral/DeepSeek。', g:['Groq','LPU','速度'] },
   { t:'TensorRT-LLM', c:'NVIDIA官方GPU优化推理引擎。支持FP8/INT4量化、In-flight Batching、Multi-GPU张量并行。H100上达最高吞吐，企业性能天花板。', g:['TensorRT','NVIDIA','H100'] },
   { t:'SGLang推理框架', c:'RadixAttention共享前缀缓存、结构化生成控制。与vLLM竞争的新一代推理框架。前缀缓存大幅降低重复prompt的推理成本。', g:['SGLang','前缀缓存','结构化'] },
-  { t:'AlphaFold3', c:'DeepMind蛋白质结构预测3代。预测蛋白质与DNA/RNA/药物分子相互作用。已预测2亿+结构。开源权重。药物发现革命性工具。', g:['AlphaFold','蛋白质','药物'] },
   { t:'GNoME材料发现', c:'DeepMind发现220万种新晶体结构。AI预测材料稳定性、合成路径，传统试错速度提升千倍。新能源电池、超导材料是重点方向。', g:['GNoME','材料','DeepMind'] },
   { t:'AI数学证明AlphaGeometry', c:'DeepMind的AlphaGeometry解决IMO几何题达金牌水平。AI发现新数学猜想、生成反例、辅助证明。陶哲轩等数学家积极采用AI工具。', g:['数学','证明','IMO'] },
   { t:'GraphCast天气预报', c:'Google DeepMind用AI在1分钟内完成10天全球天气预报，精度超传统数值预报。华为盘古气象大模型同样领先。', g:['天气预报','GraphCast','盘古'] },
